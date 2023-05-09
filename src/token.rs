@@ -1,4 +1,4 @@
-use std::{fmt::Display, str::from_utf8};
+use std::{fmt::Display, str::FromStr};
 
 #[derive(PartialEq, Eq)]
 pub enum TokenKind<'a> {
@@ -21,6 +21,16 @@ pub enum TokenKind<'a> {
 
     Function,
     Let,
+}
+
+impl<'a> TokenKind<'a> {
+    pub fn from_letters(literal: &'a str) -> Self {
+        match literal {
+            "fn" => Self::Function,
+            "let" => Self::Let,
+            _ => Self::Ident(literal),
+        }
+    }
 }
 
 impl<'a> Display for TokenKind<'a> {
