@@ -1,6 +1,7 @@
-use std::fmt::Display;
+use std::{fmt::Display, str::from_utf8};
 
-enum TokenKind {
+#[derive(PartialEq, Eq)]
+pub enum TokenKind {
     Illegal,
     Eof,
 
@@ -44,6 +45,16 @@ impl Display for TokenKind {
     }
 }
 
-struct Token {
-    kind: TokenKind,
+pub struct Token {
+    pub kind: TokenKind,
+    pub literal: String,
+}
+
+impl Token {
+    pub fn new(kind: TokenKind, byte: u8) -> Self {
+        Self {
+            kind,
+            literal: byte.escape_ascii().to_string(),
+        }
+    }
 }
