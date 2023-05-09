@@ -2,7 +2,7 @@ use crate::token::Token;
 use crate::token::TokenKind;
 use crate::token::TokenKind::*;
 
-struct Lexer<'a> {
+pub struct Lexer<'a> {
     input: &'a str,
     position: usize,
     read_position: usize,
@@ -38,7 +38,7 @@ impl<'a> Lexer<'a> {
         return self.input.as_bytes()[self.read_position];
     }
 
-    fn read_identifier<'b>(&'b mut self) -> &'b str {
+    fn read_identifier(&mut self) -> &str {
         let start = self.position;
         while is_letter(self.character) {
             self.read_char();
@@ -55,7 +55,7 @@ impl<'a> Lexer<'a> {
         number.parse().unwrap()
     }
 
-    pub fn next_token<'b>(&'b mut self) -> Token {
+    pub fn next_token(&mut self) -> Token {
         self.skip_whitespace();
 
         let token = match self.character {
@@ -114,11 +114,11 @@ impl<'a> Lexer<'a> {
 }
 
 fn is_letter(character: u8) -> bool {
-    return character.is_ascii_alphabetic() || character == b'_';
+    character.is_ascii_alphabetic() || character == b'_'
 }
 
 fn is_number(character: u8) -> bool {
-    return character.is_ascii_digit();
+    character.is_ascii_digit()
 }
 
 #[cfg(test)]

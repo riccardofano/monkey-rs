@@ -92,6 +92,7 @@ impl<'a> Display for TokenKind<'a> {
 // NOTE: right now Token is a bit useless because it as all the same info as
 // TokenKind, but I don't know where the book is going so I don't want to remove
 // it yet.
+#[derive(Debug)]
 pub struct Token<'a> {
     pub kind: TokenKind<'a>,
 }
