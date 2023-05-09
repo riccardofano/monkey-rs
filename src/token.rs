@@ -1,6 +1,6 @@
-use std::{fmt::Display, str::FromStr};
+use std::fmt::Display;
 
-#[derive(PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum TokenKind<'a> {
     Illegal,
     Eof,
@@ -10,6 +10,21 @@ pub enum TokenKind<'a> {
 
     Assign,
     Plus,
+    Minus,
+    Bang,
+    Asterisk,
+    Slash,
+
+    If,
+    Else,
+    Equal,
+    NotEqual,
+    False,
+    True,
+    Return,
+
+    LessThan,
+    GreaterThan,
 
     Comma,
     Semicolon,
@@ -25,10 +40,16 @@ pub enum TokenKind<'a> {
 
 impl<'a> TokenKind<'a> {
     pub fn from_letters(literal: &'a str) -> Self {
+        // TODO: use an hashmap
         match literal {
-            "fn" => Self::Function,
-            "let" => Self::Let,
-            _ => Self::Ident(literal),
+            "fn" => TokenKind::Function,
+            "let" => TokenKind::Let,
+            "true" => TokenKind::True,
+            "false" => TokenKind::False,
+            "if" => TokenKind::If,
+            "else" => TokenKind::Else,
+            "return" => TokenKind::Return,
+            _ => TokenKind::Ident(literal),
         }
     }
 }
@@ -36,20 +57,33 @@ impl<'a> TokenKind<'a> {
 impl<'a> Display for TokenKind<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let matched = match self {
-            Self::Illegal => "ILLEGAL",
-            Self::Eof => "EOF",
-            Self::Ident(_) => "IDENT",
-            Self::Int(_) => "INT",
-            Self::Assign => "=",
-            Self::Plus => "+",
-            Self::Comma => ",",
-            Self::Semicolon => ";",
-            Self::Lparen => "(",
-            Self::Rparen => ")",
-            Self::Lbrace => "{",
-            Self::Rbrace => "}",
-            Self::Function => "FUNCTION",
-            Self::Let => "LET",
+            TokenKind::Illegal => "ILLEGAL",
+            TokenKind::Eof => "EOF",
+            TokenKind::Ident(_) => "IDENT",
+            TokenKind::Int(_) => "INT",
+            TokenKind::Assign => "=",
+            TokenKind::Plus => "+",
+            TokenKind::Comma => ",",
+            TokenKind::Semicolon => ";",
+            TokenKind::Lparen => "(",
+            TokenKind::Rparen => ")",
+            TokenKind::Lbrace => "{",
+            TokenKind::Rbrace => "}",
+            TokenKind::Function => "FUNCTION",
+            TokenKind::Let => "LET",
+            TokenKind::Minus => "-",
+            TokenKind::Bang => "!",
+            TokenKind::Asterisk => "*",
+            TokenKind::Slash => "/",
+            TokenKind::LessThan => "<",
+            TokenKind::GreaterThan => ">",
+            TokenKind::Equal => "==",
+            TokenKind::NotEqual => "!=",
+            TokenKind::False => "FALSE",
+            TokenKind::True => "TRUE",
+            TokenKind::Return => "RETURN",
+            TokenKind::If => "IF",
+            TokenKind::Else => "ELSE",
         };
         write!(f, "{matched}")
     }
