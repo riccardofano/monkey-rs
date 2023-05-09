@@ -1,11 +1,11 @@
 use std::{fmt::Display, str::from_utf8};
 
 #[derive(PartialEq, Eq)]
-pub enum TokenKind {
+pub enum TokenKind<'a> {
     Illegal,
     Eof,
 
-    Ident(String),
+    Ident(&'a str),
     Int(usize),
 
     Assign,
@@ -23,7 +23,7 @@ pub enum TokenKind {
     Let,
 }
 
-impl Display for TokenKind {
+impl<'a> Display for TokenKind<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let matched = match self {
             Self::Illegal => "ILLEGAL",
@@ -45,16 +45,15 @@ impl Display for TokenKind {
     }
 }
 
-pub struct Token {
-    pub kind: TokenKind,
-    pub literal: String,
+// NOTE: right now Token is a bit useless because it as all the same info as
+// TokenKind, but I don't know where the book is going so I don't want to remove
+// it yet.
+pub struct Token<'a> {
+    pub kind: TokenKind<'a>,
 }
 
-impl Token {
-    pub fn new(kind: TokenKind, byte: u8) -> Self {
-        Self {
-            kind,
-            literal: byte.escape_ascii().to_string(),
-        }
+impl<'a> Token<'a> {
+    pub fn new(kind: TokenKind<'a>) -> Self {
+        Self { kind }
     }
 }
