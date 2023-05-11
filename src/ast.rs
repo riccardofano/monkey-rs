@@ -1,20 +1,28 @@
-use crate::token::Token;
-
 #[derive(Debug)]
-struct Identifier {
-    token: Token,
-}
+pub struct Identifier(pub String);
 
 #[derive(Debug)]
 pub enum Statement {
-    LetStatement(Token, Identifier, Expression),
+    LetStatement(Identifier, Expression),
+    ReturnStatement,
+    ExpressionStatement,
 }
 
 #[derive(Debug)]
-pub enum Expression {}
+pub enum Expression {
+    Placeholder,
+}
 
 pub struct Program {
-    statements: Vec<Statement>,
+    pub statements: Vec<Statement>,
+}
+
+impl Program {
+    pub fn new() -> Self {
+        Self {
+            statements: Vec::new(),
+        }
+    }
 }
 
 impl Program {

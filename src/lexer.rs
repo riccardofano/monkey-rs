@@ -2,6 +2,7 @@ use crate::token::Token;
 use crate::token::TokenKind;
 use crate::token::TokenKind::*;
 
+#[derive(Debug)]
 pub struct Lexer {
     input: String,
     position: usize,
@@ -55,12 +56,8 @@ impl Lexer {
         number.parse().unwrap()
     }
 
-    pub fn next_token(&mut self) -> Option<Token> {
+    pub fn next_token(&mut self) -> Token {
         self.skip_whitespace();
-
-        if self.character == 0 {
-            return None;
-        }
 
         let token = match self.character {
             b'+' => Token::new(Plus),
@@ -75,6 +72,7 @@ impl Lexer {
             b')' => Token::new(Rparen),
             b'{' => Token::new(Lbrace),
             b'}' => Token::new(Rbrace),
+            0 => Token::new(Eof),
             b'=' => {
                 if self.peek_char() == b'=' {
                     self.read_char();
@@ -95,18 +93,18 @@ impl Lexer {
                 if is_letter(c) {
                     let literal = self.read_identifier();
                     let kind = TokenKind::from_letters(literal);
-                    return Some(Token::new(kind));
+                    return Token::new(kind);
                 } else if is_number(c) {
                     let number = self.read_number();
-                    return Some(Token::new(Int(number)));
+                    return Token::new(Int(number));
                 } else {
-                    return Some(Token::new(Illegal));
+                    return Token::new(Illegal);
                 }
             }
         };
 
         self.read_char();
-        Some(token)
+        token
     }
 
     fn skip_whitespace(&mut self) {
@@ -129,17 +127,17 @@ mod tests {
     use super::*;
     use crate::token::TokenKind;
 
-    fn test_next_token(input: &str, expected: &[Option<TokenKind>]) {
+    fn test_next_token(input: &str, expected: &[TokenKind]) {
         let mut lexer = Lexer::new(input);
 
         for expected_token in expected.iter() {
             let token = lexer.next_token();
 
-            match (token, expected_token) {
-                (Some(a), Some(b)) => assert!(&a.kind == b),
-                (None, None) => todo!(),
-                (a, b) => panic!("{a:?} is not equal to {b:?}"),
-            }
+            assert_eq!(
+                &token.kind, expected_token,
+                "a: {:?} b: {:?}",
+                &token.kind, expected_token
+            );
         }
     }
 
@@ -147,15 +145,15 @@ mod tests {
     fn test_basic_tokens() {
         let input = "=+(){},;";
         let expected = vec![
-            Some(TokenKind::Assign),
-            Some(TokenKind::Plus),
-            Some(TokenKind::Lparen),
-            Some(TokenKind::Rparen),
-            Some(TokenKind::Lbrace),
-            Some(TokenKind::Rbrace),
-            Some(TokenKind::Comma),
-            Some(TokenKind::Semicolon),
-            None,
+            TokenKind::Assign,
+            TokenKind::Plus,
+            TokenKind::Lparen,
+            TokenKind::Rparen,
+            TokenKind::Lbrace,
+            TokenKind::Rbrace,
+            TokenKind::Comma,
+            TokenKind::Semicolon,
+            TokenKind::Eof,
         ];
         test_next_token(input, &expected);
     }
@@ -173,43 +171,43 @@ let result = add(five, ten);
 "#;
 
         let expected = vec![
-            Some(TokenKind::Let),
-            Some(TokenKind::Ident(String::from("five"))),
-            Some(TokenKind::Assign),
-            Some(TokenKind::Int(5)),
-            Some(TokenKind::Semicolon),
-            Some(TokenKind::Let),
-            Some(TokenKind::Ident(String::from("ten"))),
-            Some(TokenKind::Assign),
-            Some(TokenKind::Int(10)),
-            Some(TokenKind::Semicolon),
-            Some(TokenKind::Let),
-            Some(TokenKind::Ident(String::from("add"))),
-            Some(TokenKind::Assign),
-            Some(TokenKind::Function),
-            Some(TokenKind::Lparen),
-            Some(TokenKind::Ident(String::from("x"))),
-            Some(TokenKind::Comma),
-            Some(TokenKind::Ident(String::from("y"))),
-            Some(TokenKind::Rparen),
-            Some(TokenKind::Lbrace),
-            Some(TokenKind::Ident(String::from("x"))),
-            Some(TokenKind::Plus),
-            Some(TokenKind::Ident(String::from("y"))),
-            Some(TokenKind::Semicolon),
-            Some(TokenKind::Rbrace),
-            Some(TokenKind::Semicolon),
-            Some(TokenKind::Let),
-            Some(TokenKind::Ident(String::from("result"))),
-            Some(TokenKind::Assign),
-            Some(TokenKind::Ident(String::from("add"))),
-            Some(TokenKind::Lparen),
-            Some(TokenKind::Ident(String::from("five"))),
-            Some(TokenKind::Comma),
-            Some(TokenKind::Ident(String::from("ten"))),
-            Some(TokenKind::Rparen),
-            Some(TokenKind::Semicolon),
-            None,
+            TokenKind::Let,
+            TokenKind::Ident(String::from("five")),
+            TokenKind::Assign,
+            TokenKind::Int(5),
+            TokenKind::Semicolon,
+            TokenKind::Let,
+            TokenKind::Ident(String::from("ten")),
+            TokenKind::Assign,
+            TokenKind::Int(10),
+            TokenKind::Semicolon,
+            TokenKind::Let,
+            TokenKind::Ident(String::from("add")),
+            TokenKind::Assign,
+            TokenKind::Function,
+            TokenKind::Lparen,
+            TokenKind::Ident(String::from("x")),
+            TokenKind::Comma,
+            TokenKind::Ident(String::from("y")),
+            TokenKind::Rparen,
+            TokenKind::Lbrace,
+            TokenKind::Ident(String::from("x")),
+            TokenKind::Plus,
+            TokenKind::Ident(String::from("y")),
+            TokenKind::Semicolon,
+            TokenKind::Rbrace,
+            TokenKind::Semicolon,
+            TokenKind::Let,
+            TokenKind::Ident(String::from("result")),
+            TokenKind::Assign,
+            TokenKind::Ident(String::from("add")),
+            TokenKind::Lparen,
+            TokenKind::Ident(String::from("five")),
+            TokenKind::Comma,
+            TokenKind::Ident(String::from("ten")),
+            TokenKind::Rparen,
+            TokenKind::Semicolon,
+            TokenKind::Eof,
         ];
         test_next_token(input, &expected);
     }
@@ -237,80 +235,80 @@ if (5 < 10) {
 10 != 9;
 "#;
         let expected = vec![
-            Some(TokenKind::Let),
-            Some(TokenKind::Ident(String::from("five"))),
-            Some(TokenKind::Assign),
-            Some(TokenKind::Int(5)),
-            Some(TokenKind::Semicolon),
-            Some(TokenKind::Let),
-            Some(TokenKind::Ident(String::from("ten"))),
-            Some(TokenKind::Assign),
-            Some(TokenKind::Int(10)),
-            Some(TokenKind::Semicolon),
-            Some(TokenKind::Let),
-            Some(TokenKind::Ident(String::from("add"))),
-            Some(TokenKind::Assign),
-            Some(TokenKind::Function),
-            Some(TokenKind::Lparen),
-            Some(TokenKind::Ident(String::from("x"))),
-            Some(TokenKind::Comma),
-            Some(TokenKind::Ident(String::from("y"))),
-            Some(TokenKind::Rparen),
-            Some(TokenKind::Lbrace),
-            Some(TokenKind::Ident(String::from("x"))),
-            Some(TokenKind::Plus),
-            Some(TokenKind::Ident(String::from("y"))),
-            Some(TokenKind::Semicolon),
-            Some(TokenKind::Rbrace),
-            Some(TokenKind::Semicolon),
-            Some(TokenKind::Let),
-            Some(TokenKind::Ident(String::from("result"))),
-            Some(TokenKind::Assign),
-            Some(TokenKind::Ident(String::from("add"))),
-            Some(TokenKind::Lparen),
-            Some(TokenKind::Ident(String::from("five"))),
-            Some(TokenKind::Comma),
-            Some(TokenKind::Ident(String::from("ten"))),
-            Some(TokenKind::Rparen),
-            Some(TokenKind::Semicolon),
-            Some(TokenKind::Bang),
-            Some(TokenKind::Minus),
-            Some(TokenKind::Slash),
-            Some(TokenKind::Asterisk),
-            Some(TokenKind::Int(5)),
-            Some(TokenKind::Semicolon),
-            Some(TokenKind::Int(5)),
-            Some(TokenKind::LessThan),
-            Some(TokenKind::Int(10)),
-            Some(TokenKind::GreaterThan),
-            Some(TokenKind::Int(5)),
-            Some(TokenKind::Semicolon),
-            Some(TokenKind::If),
-            Some(TokenKind::Lparen),
-            Some(TokenKind::Int(5)),
-            Some(TokenKind::LessThan),
-            Some(TokenKind::Int(10)),
-            Some(TokenKind::Rparen),
-            Some(TokenKind::Lbrace),
-            Some(TokenKind::Return),
-            Some(TokenKind::True),
-            Some(TokenKind::Semicolon),
-            Some(TokenKind::Rbrace),
-            Some(TokenKind::Else),
-            Some(TokenKind::Lbrace),
-            Some(TokenKind::Return),
-            Some(TokenKind::False),
-            Some(TokenKind::Semicolon),
-            Some(TokenKind::Rbrace),
-            Some(TokenKind::Int(10)),
-            Some(TokenKind::Equal),
-            Some(TokenKind::Int(10)),
-            Some(TokenKind::Semicolon),
-            Some(TokenKind::Int(10)),
-            Some(TokenKind::NotEqual),
-            Some(TokenKind::Int(9)),
-            Some(TokenKind::Semicolon),
-            None,
+            TokenKind::Let,
+            TokenKind::Ident(String::from("five")),
+            TokenKind::Assign,
+            TokenKind::Int(5),
+            TokenKind::Semicolon,
+            TokenKind::Let,
+            TokenKind::Ident(String::from("ten")),
+            TokenKind::Assign,
+            TokenKind::Int(10),
+            TokenKind::Semicolon,
+            TokenKind::Let,
+            TokenKind::Ident(String::from("add")),
+            TokenKind::Assign,
+            TokenKind::Function,
+            TokenKind::Lparen,
+            TokenKind::Ident(String::from("x")),
+            TokenKind::Comma,
+            TokenKind::Ident(String::from("y")),
+            TokenKind::Rparen,
+            TokenKind::Lbrace,
+            TokenKind::Ident(String::from("x")),
+            TokenKind::Plus,
+            TokenKind::Ident(String::from("y")),
+            TokenKind::Semicolon,
+            TokenKind::Rbrace,
+            TokenKind::Semicolon,
+            TokenKind::Let,
+            TokenKind::Ident(String::from("result")),
+            TokenKind::Assign,
+            TokenKind::Ident(String::from("add")),
+            TokenKind::Lparen,
+            TokenKind::Ident(String::from("five")),
+            TokenKind::Comma,
+            TokenKind::Ident(String::from("ten")),
+            TokenKind::Rparen,
+            TokenKind::Semicolon,
+            TokenKind::Bang,
+            TokenKind::Minus,
+            TokenKind::Slash,
+            TokenKind::Asterisk,
+            TokenKind::Int(5),
+            TokenKind::Semicolon,
+            TokenKind::Int(5),
+            TokenKind::LessThan,
+            TokenKind::Int(10),
+            TokenKind::GreaterThan,
+            TokenKind::Int(5),
+            TokenKind::Semicolon,
+            TokenKind::If,
+            TokenKind::Lparen,
+            TokenKind::Int(5),
+            TokenKind::LessThan,
+            TokenKind::Int(10),
+            TokenKind::Rparen,
+            TokenKind::Lbrace,
+            TokenKind::Return,
+            TokenKind::True,
+            TokenKind::Semicolon,
+            TokenKind::Rbrace,
+            TokenKind::Else,
+            TokenKind::Lbrace,
+            TokenKind::Return,
+            TokenKind::False,
+            TokenKind::Semicolon,
+            TokenKind::Rbrace,
+            TokenKind::Int(10),
+            TokenKind::Equal,
+            TokenKind::Int(10),
+            TokenKind::Semicolon,
+            TokenKind::Int(10),
+            TokenKind::NotEqual,
+            TokenKind::Int(9),
+            TokenKind::Semicolon,
+            TokenKind::Eof,
         ];
 
         test_next_token(input, &expected);

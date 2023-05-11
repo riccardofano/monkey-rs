@@ -1,6 +1,6 @@
 use std::io::{self, BufRead, Write};
 
-use crate::lexer::Lexer;
+use crate::{lexer::Lexer, token::TokenKind};
 
 const PROMPT: &str = ">> ";
 
@@ -18,9 +18,14 @@ pub fn start(mut input: impl BufRead) -> io::Result<()> {
 
         let mut lexer = Lexer::new(&buf);
 
-        while let Some(token) = lexer.next_token() {
+        loop {
+            let token = lexer.next_token();
+            if token.kind == TokenKind::Eof {
+                break;
+            }
             println!("{token:?}");
         }
+
         buf.clear()
     }
 }
