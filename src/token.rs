@@ -1,11 +1,11 @@
 use std::fmt::Display;
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum TokenKind<'a> {
+pub enum TokenKind {
     Illegal,
     Eof,
 
-    Ident(&'a str),
+    Ident(String),
     Int(usize),
 
     Assign,
@@ -38,8 +38,8 @@ pub enum TokenKind<'a> {
     Let,
 }
 
-impl<'a> TokenKind<'a> {
-    pub fn from_letters(literal: &'a str) -> Self {
+impl TokenKind {
+    pub fn from_letters(literal: &str) -> Self {
         // TODO: use an hashmap
         match literal {
             "fn" => TokenKind::Function,
@@ -49,12 +49,12 @@ impl<'a> TokenKind<'a> {
             "if" => TokenKind::If,
             "else" => TokenKind::Else,
             "return" => TokenKind::Return,
-            _ => TokenKind::Ident(literal),
+            _ => TokenKind::Ident(literal.to_string()),
         }
     }
 }
 
-impl<'a> Display for TokenKind<'a> {
+impl Display for TokenKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let matched = match self {
             TokenKind::Illegal => "ILLEGAL",
@@ -93,12 +93,12 @@ impl<'a> Display for TokenKind<'a> {
 // TokenKind, but I don't know where the book is going so I don't want to remove
 // it yet.
 #[derive(Debug)]
-pub struct Token<'a> {
-    pub kind: TokenKind<'a>,
+pub struct Token {
+    pub kind: TokenKind,
 }
 
-impl<'a> Token<'a> {
-    pub fn new(kind: TokenKind<'a>) -> Self {
+impl Token {
+    pub fn new(kind: TokenKind) -> Self {
         Self { kind }
     }
 }
