@@ -4,7 +4,7 @@ pub struct Identifier(pub String);
 #[derive(Debug)]
 pub enum Statement {
     LetStatement(Identifier, Expression),
-    ReturnStatement,
+    ReturnStatement(Expression),
     ExpressionStatement,
 }
 

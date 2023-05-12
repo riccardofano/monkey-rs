@@ -22,7 +22,6 @@ impl Parser {
         };
         parser.next_token();
         parser.next_token();
-        dbg!(&parser);
         parser
     }
 
@@ -42,6 +41,7 @@ impl Parser {
     fn parser_statement(&mut self) -> Option<Statement> {
         let statement_result = match self.current_token.kind {
             TokenKind::Let => self.parse_let_statement(),
+            TokenKind::Return => self.parse_return_statement(),
             _ => self.parse_expression_statement(),
         };
 
@@ -88,6 +88,17 @@ impl Parser {
         ))
     }
 
+    fn parse_return_statement(&mut self) -> Result<Statement, String> {
+        self.next_token();
+
+        // TODO: parse expression; We're skipping until a semicolon for now.
+        while !self.current_token_is(&TokenKind::Semicolon) {
+            self.next_token();
+        }
+
+        Ok(Statement::ReturnStatement(Expression::Placeholder))
+    }
+
     fn peek_token_is(&self, kind: &TokenKind) -> bool {
         &self.peeked_token.kind == kind
     }
@@ -132,7 +143,6 @@ mod tests {
 
         assert!(parser.errors().is_empty());
 
-        dbg!(&program.statements);
         if program.statements.len() != 3 {
             panic!(
                 "The program does not contain 3 statements. Got {}",
@@ -157,5 +167,32 @@ mod tests {
             return false;
         };
         true
+    }
+
+    #[test]
+    fn test_return_statements() {
+        let input = r#"
+        return 5;
+        return 10;
+        return 993322;
+        "#;
+        let mut parser = Parser::new(Lexer::new(input));
+        let program = parser.parse_program();
+
+        assert!(parser.errors().is_empty());
+
+        if program.statements.len() != 3 {
+            panic!(
+                "The program does not contain 3 statements. Got {}",
+                program.statements.len()
+            )
+        }
+
+        for statement in program.statements {
+            let Statement::ReturnStatement(_) = statement else {
+                eprintln!("statement is not let, got: {:?}", statement);
+                continue;
+            };
+        }
     }
 }
