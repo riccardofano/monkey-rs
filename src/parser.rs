@@ -63,6 +63,27 @@ impl Parser {
         self.current_token = previously_peeked;
     }
 
+    fn peek_token_is(&self, kind: &TokenKind) -> bool {
+        &self.peeked_token.kind == kind
+    }
+
+    fn current_token_is(&self, kind: &TokenKind) -> bool {
+        &self.current_token.kind == kind
+    }
+
+    // TODO: use thiserror for errors instead of strings
+    fn expect_peek(&mut self, kind: &TokenKind) -> Result<(), String> {
+        if !self.peek_token_is(kind) {
+            return Err(format!(
+                "expected next token to be {kind}, got: {:?}",
+                self.peeked_token
+            ));
+        }
+
+        self.next_token();
+        Ok(())
+    }
+
     fn parse_let_statement(&mut self) -> Result<Statement, String> {
         let TokenKind::Ident(name) = &self.peeked_token.kind else {
             return Err(format!("expected TokenKind to be Identifier(_), got: {:?}", &self.peeked_token.kind));
@@ -99,29 +120,8 @@ impl Parser {
         Ok(Statement::ReturnStatement(Expression::Placeholder))
     }
 
-    fn peek_token_is(&self, kind: &TokenKind) -> bool {
-        &self.peeked_token.kind == kind
-    }
-
-    // TODO: use thiserror for errors instead of strings
-    fn expect_peek(&mut self, kind: &TokenKind) -> Result<(), String> {
-        if !self.peek_token_is(kind) {
-            return Err(format!(
-                "expected next token to be {kind}, got: {:?}",
-                self.peeked_token
-            ));
-        }
-
-        self.next_token();
-        Ok(())
-    }
-
     fn parse_expression_statement(&self) -> Result<Statement, String> {
-        Ok(Statement::ExpressionStatement)
-    }
-
-    fn current_token_is(&self, kind: &TokenKind) -> bool {
-        &self.current_token.kind == kind
+        Ok(Statement::ExpressionStatement(Expression::Placeholder))
     }
 }
 

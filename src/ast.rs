@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 #[derive(Debug)]
 pub struct Identifier(pub String);
 
@@ -5,12 +7,32 @@ pub struct Identifier(pub String);
 pub enum Statement {
     LetStatement(Identifier, Expression),
     ReturnStatement(Expression),
-    ExpressionStatement,
+    ExpressionStatement(Expression),
+}
+
+impl Display for Statement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let matched = match self {
+            Statement::LetStatement(ident, value) => format!("let {} = {value};", ident.0),
+            Statement::ReturnStatement(value) => format!("return {value};"),
+            Statement::ExpressionStatement(value) => value.to_string(),
+        };
+        write!(f, "{matched}")
+    }
 }
 
 #[derive(Debug)]
 pub enum Expression {
     Placeholder,
+}
+
+impl Display for Expression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let matched = match self {
+            Expression::Placeholder => "PLACEHOLDER",
+        };
+        write!(f, "{matched}")
+    }
 }
 
 pub struct Program {
