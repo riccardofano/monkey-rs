@@ -24,6 +24,7 @@ impl Display for Statement {
 #[derive(Debug)]
 pub enum Expression {
     IdentifierExpr(Identifier),
+    IntegerLiteral(usize),
 
     PrefixExpr(Box<Expression>),
     InfixExpr(Box<Expression>),
@@ -36,6 +37,7 @@ impl Display for Expression {
         let matched = match self {
             Expression::Placeholder => "PLACEHOLDER".to_string(),
             Expression::IdentifierExpr(ident) => ident.0.clone(),
+            Expression::IntegerLiteral(int) => int.to_string(),
             Expression::PrefixExpr(expr) => expr.to_string(),
             Expression::InfixExpr(expr) => expr.to_string(),
         };

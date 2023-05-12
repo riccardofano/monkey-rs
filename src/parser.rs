@@ -163,7 +163,7 @@ impl Parser {
     }
 
     fn has_parse_prefix_fn(kind: &TokenKind) -> bool {
-        matches!(kind, TokenKind::Ident(_))
+        matches!(kind, TokenKind::Ident(_) | TokenKind::Int(_))
     }
 
     fn has_parse_infix_fn(kind: &TokenKind) -> bool {
@@ -173,6 +173,7 @@ impl Parser {
     fn parse_prefix(&mut self) -> Expression {
         match &self.current_token.kind {
             TokenKind::Ident(value) => Expression::IdentifierExpr(Identifier(value.clone())),
+            TokenKind::Int(value) => Expression::IntegerLiteral(*value),
             _ => unimplemented!(),
         }
     }
@@ -274,5 +275,24 @@ mod tests {
         };
 
         assert_eq!(ident.to_string(), "foobar");
+    }
+
+    #[test]
+    fn test_integer_expressions() {
+        let input = "5;";
+        let mut parser = Parser::new(Lexer::new(input));
+        let program = parser.parse_program();
+
+        assert!(parser.errors().is_empty(), "{:?}", parser.errors());
+
+        if program.statements.len() != 1 {
+            panic!("expected 1 statement. Got {}", program.statements.len());
+        }
+
+        let Statement::ExpressionStatement(ident) = &program.statements[0] else {
+            panic!("expected an ExpressionStatement. Got {}", program.statements[0]);
+        };
+
+        assert_eq!(ident.to_string(), "5");
     }
 }
