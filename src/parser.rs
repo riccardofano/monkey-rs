@@ -4,6 +4,17 @@ use crate::{
     token::{Token, TokenKind},
 };
 
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
+pub enum Precedence {
+    Lowest,
+    Equals,
+    LessGreater,
+    Sum,
+    Product,
+    Prefix,
+    Call,
+}
+
 #[derive(Debug)]
 struct Parser {
     lexer: Lexer,
@@ -20,6 +31,7 @@ impl Parser {
             peeked_token: Token::new(TokenKind::Illegal),
             errors: Vec::new(),
         };
+
         parser.next_token();
         parser.next_token();
         parser
@@ -42,7 +54,7 @@ impl Parser {
         let statement_result = match self.current_token.kind {
             TokenKind::Let => self.parse_let_statement(),
             TokenKind::Return => self.parse_return_statement(),
-            _ => self.parse_expression_statement(),
+            _ => self.parse_expression_statement(Precedence::Lowest),
         };
 
         match statement_result {
@@ -120,8 +132,57 @@ impl Parser {
         Ok(Statement::ReturnStatement(Expression::Placeholder))
     }
 
-    fn parse_expression_statement(&self) -> Result<Statement, String> {
-        Ok(Statement::ExpressionStatement(Expression::Placeholder))
+    fn parse_expression_statement(&mut self, precedence: Precedence) -> Result<Statement, String> {
+        let expression = self.parse_expression(precedence)?;
+        if self.peek_token_is(&TokenKind::Semicolon) {
+            self.next_token();
+        }
+        Ok(Statement::ExpressionStatement(expression))
+    }
+
+    fn parse_expression(&mut self, precedence: Precedence) -> Result<Expression, String> {
+        if !Parser::has_parse_prefix_fn(&self.current_token.kind) {
+            return Err(format!(
+                "Expected a prefix. Got: {}",
+                self.current_token.kind
+            ));
+        };
+
+        let mut expression = self.parse_prefix();
+
+        while !self.peek_token_is(&TokenKind::Semicolon) && precedence < self.peek_precedence() {
+            if !Parser::has_parse_infix_fn(&self.current_token.kind) {
+                return Ok(expression);
+            };
+
+            self.next_token();
+            expression = self.parse_infix(expression);
+        }
+
+        Ok(expression)
+    }
+
+    fn has_parse_prefix_fn(kind: &TokenKind) -> bool {
+        matches!(kind, TokenKind::Ident(_))
+    }
+
+    fn has_parse_infix_fn(kind: &TokenKind) -> bool {
+        matches!(kind, TokenKind::Plus)
+    }
+
+    fn parse_prefix(&mut self) -> Expression {
+        match &self.current_token.kind {
+            TokenKind::Ident(value) => Expression::IdentifierExpr(Identifier(value.clone())),
+            _ => unimplemented!(),
+        }
+    }
+
+    fn parse_infix(&mut self, expression: Expression) -> Expression {
+        todo!()
+    }
+
+    fn peek_precedence(&self) -> Precedence {
+        todo!()
     }
 }
 
@@ -141,7 +202,7 @@ mod tests {
         let mut parser = Parser::new(lexer);
         let program = parser.parse_program();
 
-        assert!(parser.errors().is_empty());
+        assert!(parser.errors().is_empty(), "{:?}", parser.errors());
 
         if program.statements.len() != 3 {
             panic!(
@@ -179,7 +240,7 @@ mod tests {
         let mut parser = Parser::new(Lexer::new(input));
         let program = parser.parse_program();
 
-        assert!(parser.errors().is_empty());
+        assert!(parser.errors().is_empty(), "{:?}", parser.errors());
 
         if program.statements.len() != 3 {
             panic!(
@@ -194,5 +255,24 @@ mod tests {
                 continue;
             };
         }
+    }
+
+    #[test]
+    fn test_identifier_expressions() {
+        let input = "foobar;";
+        let mut parser = Parser::new(Lexer::new(input));
+        let program = parser.parse_program();
+
+        assert!(parser.errors().is_empty(), "{:?}", parser.errors());
+
+        if program.statements.len() != 1 {
+            panic!("expected 1 statement. Got {}", program.statements.len());
+        }
+
+        let Statement::ExpressionStatement(ident) = &program.statements[0] else {
+            panic!("expected an ExpressionStatement. Got {}", program.statements[0]);
+        };
+
+        assert_eq!(ident.to_string(), "foobar");
     }
 }

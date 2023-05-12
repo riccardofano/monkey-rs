@@ -23,13 +23,21 @@ impl Display for Statement {
 
 #[derive(Debug)]
 pub enum Expression {
+    IdentifierExpr(Identifier),
+
+    PrefixExpr(Box<Expression>),
+    InfixExpr(Box<Expression>),
+
     Placeholder,
 }
 
 impl Display for Expression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let matched = match self {
-            Expression::Placeholder => "PLACEHOLDER",
+            Expression::Placeholder => "PLACEHOLDER".to_string(),
+            Expression::IdentifierExpr(ident) => ident.0.clone(),
+            Expression::PrefixExpr(expr) => expr.to_string(),
+            Expression::InfixExpr(expr) => expr.to_string(),
         };
         write!(f, "{matched}")
     }
