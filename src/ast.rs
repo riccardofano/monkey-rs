@@ -1,5 +1,7 @@
 use std::fmt::Display;
 
+use crate::token::TokenKind;
+
 #[derive(Debug)]
 pub struct Identifier(pub String);
 
@@ -23,11 +25,11 @@ impl Display for Statement {
 
 #[derive(Debug)]
 pub enum Expression {
-    IdentifierExpr(Identifier),
+    Identifier(Identifier),
     IntegerLiteral(usize),
 
-    PrefixExpr(Box<Expression>),
-    InfixExpr(Box<Expression>),
+    Prefix(TokenKind, Box<Expression>),
+    Infix(Box<Expression>),
 
     Placeholder,
 }
@@ -36,10 +38,10 @@ impl Display for Expression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let matched = match self {
             Expression::Placeholder => "PLACEHOLDER".to_string(),
-            Expression::IdentifierExpr(ident) => ident.0.clone(),
+            Expression::Identifier(ident) => ident.0.clone(),
             Expression::IntegerLiteral(int) => int.to_string(),
-            Expression::PrefixExpr(expr) => expr.to_string(),
-            Expression::InfixExpr(expr) => expr.to_string(),
+            Expression::Prefix(token, expr) => format!("{token}{expr}"),
+            Expression::Infix(expr) => expr.to_string(),
         };
         write!(f, "{matched}")
     }

@@ -4,7 +4,7 @@ use crate::{
     token::{Token, TokenKind},
 };
 
-#[derive(PartialEq, Eq, PartialOrd, Ord)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub enum Precedence {
     Lowest,
     Equals,
@@ -13,6 +13,23 @@ pub enum Precedence {
     Product,
     Prefix,
     Call,
+}
+
+impl From<&TokenKind> for Precedence {
+    fn from(value: &TokenKind) -> Self {
+        match value {
+            TokenKind::Equal => Precedence::Equals,
+            TokenKind::NotEqual => Precedence::Equals,
+            TokenKind::LessThan => Precedence::LessGreater,
+            TokenKind::GreaterThan => Precedence::LessGreater,
+            TokenKind::Plus => Precedence::Sum,
+            TokenKind::Minus => Precedence::Sum,
+            TokenKind::Slash => Precedence::Product,
+            TokenKind::Asterisk => Precedence::Product,
+            TokenKind::Lparen => Precedence::Call,
+            _ => Precedence::Lowest,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -148,7 +165,7 @@ impl Parser {
             ));
         };
 
-        let mut expression = self.parse_prefix();
+        let mut expression = self.parse_prefix()?;
 
         while !self.peek_token_is(&TokenKind::Semicolon) && precedence < self.peek_precedence() {
             if !Parser::has_parse_infix_fn(&self.current_token.kind) {
@@ -163,19 +180,38 @@ impl Parser {
     }
 
     fn has_parse_prefix_fn(kind: &TokenKind) -> bool {
-        matches!(kind, TokenKind::Ident(_) | TokenKind::Int(_))
+        matches!(
+            kind,
+            TokenKind::Ident(_) | TokenKind::Int(_) | TokenKind::Bang | TokenKind::Minus
+        )
     }
 
     fn has_parse_infix_fn(kind: &TokenKind) -> bool {
         matches!(kind, TokenKind::Plus)
     }
 
-    fn parse_prefix(&mut self) -> Expression {
-        match &self.current_token.kind {
-            TokenKind::Ident(value) => Expression::IdentifierExpr(Identifier(value.clone())),
+    fn parse_prefix(&mut self) -> Result<Expression, String> {
+        let expr = match &self.current_token.kind {
+            TokenKind::Ident(value) => Expression::Identifier(Identifier(value.clone())),
             TokenKind::Int(value) => Expression::IntegerLiteral(*value),
+            TokenKind::Minus => {
+                self.next_token();
+                Expression::Prefix(
+                    TokenKind::Minus,
+                    Box::new(self.parse_expression(Precedence::Prefix)?),
+                )
+            }
+            TokenKind::Bang => {
+                self.next_token();
+                Expression::Prefix(
+                    TokenKind::Bang,
+                    Box::new(self.parse_expression(Precedence::Prefix)?),
+                )
+            }
             _ => unimplemented!(),
-        }
+        };
+
+        Ok(expr)
     }
 
     fn parse_infix(&mut self, expression: Expression) -> Expression {
@@ -183,7 +219,8 @@ impl Parser {
     }
 
     fn peek_precedence(&self) -> Precedence {
-        todo!()
+        let current_kind = &self.current_token.kind;
+        current_kind.into()
     }
 }
 
@@ -294,5 +331,36 @@ mod tests {
         };
 
         assert_eq!(ident.to_string(), "5");
+    }
+
+    #[test]
+    fn test_parsing_prefix_expressions() {
+        let inputs: Vec<(&str, &str, usize)> = vec![("!5;", "!", 5), ("-15", "-", 15)];
+
+        for input in inputs {
+            let mut parser = Parser::new(Lexer::new(input.0));
+            let program = parser.parse_program();
+
+            assert!(parser.errors().is_empty(), "{:?}", parser.errors());
+
+            if program.statements.len() != 1 {
+                panic!("expected 1 statement. Got {}", program.statements.len());
+            }
+
+            let Statement::ExpressionStatement(expression) = &program.statements[0] else {
+            panic!("expected an ExpressionStatement. Got {}", program.statements[0]);
+            };
+
+            let Expression::Prefix(token_kind, expression) = expression else {
+                panic!("expected a PrefixExpression. Got: {:?}", expression);
+            };
+            assert_eq!(token_kind.to_string(), input.1);
+
+            let Expression::IntegerLiteral(value) = **expression else {
+                panic!("expected an IntegerLiteral. Got: {:?}", expression);
+            };
+
+            assert_eq!(value, input.2);
+        }
     }
 }
