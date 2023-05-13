@@ -4,7 +4,7 @@ use crate::{
     token::{Token, TokenKind},
 };
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub enum Precedence {
     Lowest,
     Equals,
@@ -154,6 +154,7 @@ impl Parser {
         if self.peek_token_is(&TokenKind::Semicolon) {
             self.next_token();
         }
+
         Ok(Statement::ExpressionStatement(expression))
     }
 
@@ -168,12 +169,12 @@ impl Parser {
         let mut expression = self.parse_prefix()?;
 
         while !self.peek_token_is(&TokenKind::Semicolon) && precedence < self.peek_precedence() {
-            if !Parser::has_parse_infix_fn(&self.current_token.kind) {
+            if !Parser::has_parse_infix_fn(&self.peeked_token.kind) {
                 return Ok(expression);
             };
 
             self.next_token();
-            expression = self.parse_infix(expression);
+            expression = self.parse_infix(expression)?;
         }
 
         Ok(expression)
@@ -187,7 +188,17 @@ impl Parser {
     }
 
     fn has_parse_infix_fn(kind: &TokenKind) -> bool {
-        matches!(kind, TokenKind::Plus)
+        matches!(
+            kind,
+            TokenKind::Plus
+                | TokenKind::Minus
+                | TokenKind::Asterisk
+                | TokenKind::Slash
+                | TokenKind::LessThan
+                | TokenKind::GreaterThan
+                | TokenKind::Equal
+                | TokenKind::NotEqual
+        )
     }
 
     fn parse_prefix(&mut self) -> Result<Expression, String> {
@@ -214,11 +225,21 @@ impl Parser {
         Ok(expr)
     }
 
-    fn parse_infix(&mut self, expression: Expression) -> Expression {
-        todo!()
+    fn parse_infix(&mut self, left: Expression) -> Result<Expression, String> {
+        let token = self.current_token.kind.clone();
+        let precedence = self.current_precedence();
+        self.next_token();
+
+        let right = self.parse_expression(precedence)?;
+        Ok(Expression::Infix(Box::new(left), token, Box::new(right)))
     }
 
     fn peek_precedence(&self) -> Precedence {
+        let peeked_kind = &self.peeked_token.kind;
+        peeked_kind.into()
+    }
+
+    fn current_precedence(&self) -> Precedence {
         let current_kind = &self.current_token.kind;
         current_kind.into()
     }
@@ -361,6 +382,51 @@ mod tests {
             };
 
             assert_eq!(value, input.2);
+        }
+    }
+
+    #[test]
+    fn test_parsing_infix_expressions() {
+        let inputs: Vec<(&str, usize, &str, usize)> = vec![
+            ("5 + 5;", 5, "+", 5),
+            ("5 - 5;", 5, "-", 5),
+            ("5 * 5;", 5, "*", 5),
+            ("5 / 5;", 5, "/", 5),
+            ("5 < 5;", 5, "<", 5),
+            ("5 > 5;", 5, ">", 5),
+            ("5 == 5;", 5, "==", 5),
+            ("5 != 5;", 5, "!=", 5),
+        ];
+
+        for input in inputs {
+            let mut parser = Parser::new(Lexer::new(input.0));
+            let program = parser.parse_program();
+
+            assert!(parser.errors().is_empty(), "{:?}", parser.errors());
+
+            if program.statements.len() != 1 {
+                panic!("expected 1 statement. Got {}", program.statements.len());
+            }
+
+            let Statement::ExpressionStatement(expression) = &program.statements[0] else {
+            panic!("expected an ExpressionStatement. Got {}", program.statements[0]);
+            };
+
+            let Expression::Infix(left, token_kind, right) = expression else {
+                panic!("expected a PrefixExpression. Got: {:?}", expression);
+            };
+            let Expression::IntegerLiteral(left_value) = **left else {
+                panic!("expected an IntegerLiteral as left expression. Got: {:?}", expression);
+            };
+            assert_eq!(left_value, input.1);
+
+            assert_eq!(token_kind.to_string(), input.2);
+
+            let Expression::IntegerLiteral(right_value) = **right else {
+                panic!("expected an IntegerLiteral as right expression. Got: {:?}", expression);
+            };
+
+            assert_eq!(right_value, input.3);
         }
     }
 }

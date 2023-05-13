@@ -29,7 +29,7 @@ pub enum Expression {
     IntegerLiteral(usize),
 
     Prefix(TokenKind, Box<Expression>),
-    Infix(Box<Expression>),
+    Infix(Box<Expression>, TokenKind, Box<Expression>),
 
     Placeholder,
 }
@@ -41,7 +41,7 @@ impl Display for Expression {
             Expression::Identifier(ident) => ident.0.clone(),
             Expression::IntegerLiteral(int) => int.to_string(),
             Expression::Prefix(token, expr) => format!("{token}{expr}"),
-            Expression::Infix(expr) => expr.to_string(),
+            Expression::Infix(left, token, right) => format!("{left} {token} {right}"),
         };
         write!(f, "{matched}")
     }
