@@ -26,7 +26,7 @@ impl Display for Statement {
 #[derive(Debug)]
 pub enum Expression {
     Identifier(Identifier),
-    IntegerLiteral(usize),
+    Integer(usize),
 
     Prefix(TokenKind, Box<Expression>),
     Infix(Box<Expression>, TokenKind, Box<Expression>),
@@ -39,7 +39,7 @@ impl Display for Expression {
         let matched = match self {
             Expression::Placeholder => "PLACEHOLDER".to_string(),
             Expression::Identifier(ident) => ident.0.clone(),
-            Expression::IntegerLiteral(int) => int.to_string(),
+            Expression::Integer(int) => int.to_string(),
             Expression::Prefix(token, expr) => format!("({token}{expr})"),
             Expression::Infix(left, token, right) => format!("({left} {token} {right})"),
         };

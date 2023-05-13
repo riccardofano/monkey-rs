@@ -204,7 +204,7 @@ impl Parser {
     fn parse_prefix(&mut self) -> Result<Expression, String> {
         let expr = match &self.current_token.kind {
             TokenKind::Ident(value) => Expression::Identifier(Identifier(value.clone())),
-            TokenKind::Int(value) => Expression::IntegerLiteral(*value),
+            TokenKind::Int(value) => Expression::Integer(*value),
             TokenKind::Minus => {
                 self.next_token();
                 Expression::Prefix(
@@ -377,7 +377,7 @@ mod tests {
             };
             assert_eq!(token_kind.to_string(), input.1);
 
-            let Expression::IntegerLiteral(value) = **expression else {
+            let Expression::Integer(value) = **expression else {
                 panic!("expected an IntegerLiteral. Got: {:?}", expression);
             };
 
@@ -415,14 +415,14 @@ mod tests {
             let Expression::Infix(left, token_kind, right) = expression else {
                 panic!("expected a PrefixExpression. Got: {:?}", expression);
             };
-            let Expression::IntegerLiteral(left_value) = **left else {
+            let Expression::Integer(left_value) = **left else {
                 panic!("expected an IntegerLiteral as left expression. Got: {:?}", expression);
             };
             assert_eq!(left_value, input.1);
 
             assert_eq!(token_kind.to_string(), input.2);
 
-            let Expression::IntegerLiteral(right_value) = **right else {
+            let Expression::Integer(right_value) = **right else {
                 panic!("expected an IntegerLiteral as right expression. Got: {:?}", expression);
             };
 
