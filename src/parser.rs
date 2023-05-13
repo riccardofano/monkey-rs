@@ -247,9 +247,74 @@ impl Parser {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::ast::Statement;
 
-    use super::*;
+    trait TestExpression {
+        fn test_expression(self, expression: &Expression) -> bool;
+    }
+
+    impl TestExpression for &str {
+        fn test_expression(self, expression: &Expression) -> bool {
+            let Expression::Identifier(ident) = expression else {
+            eprintln!("expression is not Identifier(_). Got: {:?}", expression);
+            return false;
+        };
+
+            if ident.0 != self {
+                eprintln!("identifier value is not {self}. Got {:?}", ident);
+                return false;
+            }
+
+            true
+        }
+    }
+
+    impl TestExpression for usize {
+        fn test_expression(self, expression: &Expression) -> bool {
+            let Expression::Integer(int) = expression else {
+                eprintln!("expression is not Integer(_). Got {:?}", expression);
+                return false;
+            };
+
+            if int != &self {
+                eprintln!("integer value is not {self}. Got {:?}", int);
+                return false;
+            }
+            true
+        }
+    }
+
+    fn test_literal_expression<T: TestExpression>(expression: &Expression, value: T) -> bool {
+        value.test_expression(expression)
+    }
+
+    fn test_infix_expression<T: TestExpression>(
+        infix: &Expression,
+        left: T,
+        operator: &str,
+        right: T,
+    ) -> bool {
+        let Expression::Infix(left_expression, op, right_expresssion) = infix else {
+            eprintln!("expression is not Infix(_,_,_). Got: {:?}", infix);
+            return false;
+        };
+
+        if !left.test_expression(left_expression) {
+            return false;
+        };
+
+        if op.to_string() != operator {
+            eprintln!("expected operator '{operator}'. Got: {:?}", op);
+            return false;
+        }
+
+        if !right.test_expression(right_expresssion) {
+            return false;
+        }
+
+        true
+    }
 
     #[test]
     fn test_let_statements() {
@@ -332,7 +397,7 @@ mod tests {
             panic!("expected an ExpressionStatement. Got {}", program.statements[0]);
         };
 
-        assert_eq!(ident.to_string(), "foobar");
+        assert!(test_literal_expression(ident, "foobar"))
     }
 
     #[test]
@@ -351,7 +416,7 @@ mod tests {
             panic!("expected an ExpressionStatement. Got {}", program.statements[0]);
         };
 
-        assert_eq!(ident.to_string(), "5");
+        assert!(test_literal_expression(ident, 5))
     }
 
     #[test]
@@ -377,11 +442,7 @@ mod tests {
             };
             assert_eq!(token_kind.to_string(), input.1);
 
-            let Expression::Integer(value) = **expression else {
-                panic!("expected an IntegerLiteral. Got: {:?}", expression);
-            };
-
-            assert_eq!(value, input.2);
+            assert!(test_literal_expression(expression, input.2))
         }
     }
 
@@ -412,21 +473,7 @@ mod tests {
             panic!("expected an ExpressionStatement. Got {}", program.statements[0]);
             };
 
-            let Expression::Infix(left, token_kind, right) = expression else {
-                panic!("expected a PrefixExpression. Got: {:?}", expression);
-            };
-            let Expression::Integer(left_value) = **left else {
-                panic!("expected an IntegerLiteral as left expression. Got: {:?}", expression);
-            };
-            assert_eq!(left_value, input.1);
-
-            assert_eq!(token_kind.to_string(), input.2);
-
-            let Expression::Integer(right_value) = **right else {
-                panic!("expected an IntegerLiteral as right expression. Got: {:?}", expression);
-            };
-
-            assert_eq!(right_value, input.3);
+            assert!(test_infix_expression(expression, input.1, input.2, input.3))
         }
     }
 
