@@ -40,8 +40,8 @@ impl Display for Expression {
             Expression::Placeholder => "PLACEHOLDER".to_string(),
             Expression::Identifier(ident) => ident.0.clone(),
             Expression::IntegerLiteral(int) => int.to_string(),
-            Expression::Prefix(token, expr) => format!("{token}{expr}"),
-            Expression::Infix(left, token, right) => format!("{left} {token} {right}"),
+            Expression::Prefix(token, expr) => format!("({token}{expr})"),
+            Expression::Infix(left, token, right) => format!("({left} {token} {right})"),
         };
         write!(f, "{matched}")
     }
@@ -65,5 +65,18 @@ impl Program {
             return String::new();
         };
         todo!()
+    }
+}
+
+impl Display for Program {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        let statements = self
+            .statements
+            .iter()
+            .map(|s| s.to_string())
+            .collect::<Vec<_>>()
+            .join("");
+
+        write!(f, "{}", statements)
     }
 }
