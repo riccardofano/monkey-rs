@@ -308,7 +308,10 @@ mod tests {
         }
     }
 
-    fn test_literal_expression<T: TestExpression>(expression: &Expression, value: T) -> bool {
+    fn test_literal_expression<T: TestExpression + ?Sized>(
+        expression: &Expression,
+        value: &T,
+    ) -> bool {
         value.test_expression(expression)
     }
 
@@ -420,7 +423,7 @@ mod tests {
             panic!("expected an ExpressionStatement. Got {}", program.statements[0]);
         };
 
-        assert!(test_literal_expression(ident, "foobar"))
+        assert!(test_literal_expression(ident, &"foobar"))
     }
 
     #[test]
@@ -439,12 +442,17 @@ mod tests {
             panic!("expected an ExpressionStatement. Got {}", program.statements[0]);
         };
 
-        assert!(test_literal_expression(ident, 5))
+        assert!(test_literal_expression(ident, &5))
     }
 
     #[test]
     fn test_parsing_prefix_expressions() {
-        let inputs: Vec<(&str, &str, usize)> = vec![("!5;", "!", 5), ("-15", "-", 15)];
+        let inputs: Vec<(&str, &str, &dyn TestExpression)> = vec![
+            ("!5;", "!", &5),
+            ("-15", "-", &15),
+            ("!true", "!", &true),
+            ("!false", "!", &false),
+        ];
 
         for input in inputs {
             let mut parser = Parser::new(Lexer::new(input.0));
@@ -547,7 +555,7 @@ mod tests {
                 panic!("expected an ExpressionStatement. Got {:?}", program.statements[0]);
             };
 
-            assert!(test_literal_expression(expression, input.1));
+            assert!(test_literal_expression(expression, &input.1));
         }
     }
 }
