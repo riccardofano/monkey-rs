@@ -183,7 +183,12 @@ impl Parser {
     fn has_parse_prefix_fn(kind: &TokenKind) -> bool {
         matches!(
             kind,
-            TokenKind::Ident(_) | TokenKind::Int(_) | TokenKind::Bang | TokenKind::Minus
+            TokenKind::Ident(_)
+                | TokenKind::Int(_)
+                | TokenKind::True
+                | TokenKind::False
+                | TokenKind::Bang
+                | TokenKind::Minus
         )
     }
 
@@ -205,6 +210,8 @@ impl Parser {
         let expr = match &self.current_token.kind {
             TokenKind::Ident(value) => Expression::Identifier(Identifier(value.clone())),
             TokenKind::Int(value) => Expression::Integer(*value),
+            TokenKind::True => Expression::Boolean(true),
+            TokenKind::False => Expression::Boolean(false),
             TokenKind::Minus => {
                 self.next_token();
                 Expression::Prefix(
@@ -281,6 +288,22 @@ mod tests {
                 eprintln!("integer value is not {self}. Got {:?}", int);
                 return false;
             }
+            true
+        }
+    }
+
+    impl TestExpression for bool {
+        fn test_expression(self, expression: &Expression) -> bool {
+            let Expression::Boolean(bool) = expression else {
+                eprintln!("expression is not Boolean(_). Got: {:?}", expression);
+                return false;
+            };
+
+            if bool != &self {
+                eprintln!("boolean value is not {self}. Got {:?}", bool);
+                return false;
+            }
+
             true
         }
     }
@@ -504,6 +527,24 @@ mod tests {
             assert!(parser.errors().is_empty());
 
             assert_eq!(program.to_string(), input.1);
+        }
+    }
+
+    #[test]
+    fn test_boolean_expressions() {
+        let inputs: Vec<(&str, bool)> = vec![("true;", true), ("false;", false)];
+
+        for input in inputs {
+            let mut parser = Parser::new(Lexer::new(input.0));
+            let program = parser.parse_program();
+
+            assert!(parser.errors().is_empty());
+
+            let Statement::ExpressionStatement(expression) = &program.statements[0] else {
+                panic!("expected an ExpressionStatement. Got {:?}", program.statements[0]);
+            };
+
+            assert!(test_literal_expression(expression, input.1));
         }
     }
 }

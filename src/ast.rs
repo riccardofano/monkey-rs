@@ -27,6 +27,7 @@ impl Display for Statement {
 pub enum Expression {
     Identifier(Identifier),
     Integer(usize),
+    Boolean(bool),
 
     Prefix(TokenKind, Box<Expression>),
     Infix(Box<Expression>, TokenKind, Box<Expression>),
@@ -40,6 +41,7 @@ impl Display for Expression {
             Expression::Placeholder => "PLACEHOLDER".to_string(),
             Expression::Identifier(ident) => ident.0.clone(),
             Expression::Integer(int) => int.to_string(),
+            Expression::Boolean(bool) => bool.to_string(),
             Expression::Prefix(token, expr) => format!("({token}{expr})"),
             Expression::Infix(left, token, right) => format!("({left} {token} {right})"),
         };
