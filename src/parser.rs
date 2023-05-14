@@ -189,6 +189,7 @@ impl Parser {
                 | TokenKind::False
                 | TokenKind::Bang
                 | TokenKind::Minus
+                | TokenKind::Lparen
         )
     }
 
@@ -225,6 +226,12 @@ impl Parser {
                     TokenKind::Bang,
                     Box::new(self.parse_expression(Precedence::Prefix)?),
                 )
+            }
+            TokenKind::Lparen => {
+                self.next_token();
+                let expression = self.parse_expression(Precedence::Lowest);
+                self.expect_peek(&TokenKind::Rparen)?;
+                return expression;
             }
             _ => unimplemented!(),
         };
@@ -529,6 +536,11 @@ mod tests {
                 "3 + 4 * 5 == 3 * 1 + 4 * 5",
                 "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))",
             ),
+            ("1 + (2 + 3) + 4", "((1 + (2 + 3)) + 4)"),
+            ("(5 + 5) * 2", "((5 + 5) * 2)"),
+            ("2 / (5 + 5)", "(2 / (5 + 5))"),
+            ("-(5 + 5)", "(-(5 + 5))"),
+            ("!(true == true)", "(!(true == true))"),
         ];
 
         for input in inputs {
