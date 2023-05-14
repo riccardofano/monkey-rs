@@ -58,7 +58,7 @@ impl Parser {
         let mut program = Program::new();
 
         while !self.current_token_is(&TokenKind::Eof) {
-            if let Some(statement) = self.parser_statement() {
+            if let Some(statement) = self.parse_statement() {
                 program.statements.push(statement);
             }
             self.next_token();
@@ -67,7 +67,7 @@ impl Parser {
         program
     }
 
-    fn parser_statement(&mut self) -> Option<Statement> {
+    fn parse_statement(&mut self) -> Option<Statement> {
         let statement_result = match self.current_token.kind {
             TokenKind::Let => self.parse_let_statement(),
             TokenKind::Return => self.parse_return_statement(),
@@ -149,6 +149,20 @@ impl Parser {
         Ok(Statement::ReturnStatement(Expression::Placeholder))
     }
 
+    fn parse_block_statement(&mut self) -> Result<Statement, String> {
+        let mut statements = Vec::new();
+        self.next_token();
+
+        while !self.current_token_is(&TokenKind::Rbrace) && !self.current_token_is(&TokenKind::Eof)
+        {
+            if let Some(statement) = self.parse_statement() {
+                statements.push(Box::new(statement));
+            }
+            self.next_token();
+        }
+        Ok(Statement::BlockStatement(statements))
+    }
+
     fn parse_expression_statement(&mut self, precedence: Precedence) -> Result<Statement, String> {
         let expression = self.parse_expression(precedence)?;
         if self.peek_token_is(&TokenKind::Semicolon) {
@@ -190,6 +204,7 @@ impl Parser {
                 | TokenKind::Bang
                 | TokenKind::Minus
                 | TokenKind::Lparen
+                | TokenKind::If
         )
     }
 
@@ -232,6 +247,25 @@ impl Parser {
                 let expression = self.parse_expression(Precedence::Lowest);
                 self.expect_peek(&TokenKind::Rparen)?;
                 return expression;
+            }
+            TokenKind::If => {
+                self.expect_peek(&TokenKind::Lparen)?;
+                self.next_token();
+                let condition = self.parse_expression(Precedence::Lowest)?;
+
+                self.expect_peek(&TokenKind::Rparen)?;
+                self.expect_peek(&TokenKind::Lbrace)?;
+
+                let consequence = self.parse_block_statement()?;
+
+                let mut alternative = None;
+                if self.peek_token_is(&TokenKind::Else) {
+                    self.next_token();
+                    self.expect_peek(&TokenKind::Lbrace)?;
+
+                    alternative = Some(Box::new(self.parse_block_statement()?));
+                }
+                Expression::If(Box::new(condition), Box::new(consequence), alternative)
             }
             _ => unimplemented!(),
         };
@@ -569,5 +603,83 @@ mod tests {
 
             assert!(test_literal_expression(expression, &input.1));
         }
+    }
+
+    #[test]
+    fn test_if_expression() {
+        let input = "if (x < y) { x }";
+        let mut parser = Parser::new(Lexer::new(input));
+        let program = parser.parse_program();
+
+        assert!(parser.errors().is_empty(), "{:?}", parser.errors());
+
+        assert_eq!(program.statements.len(), 1);
+
+        let Statement::ExpressionStatement(if_expression) = &program.statements[0] else {
+            panic!("expected an ExpressionStatement. Got {:?}", program.statements[0]);
+        };
+
+        let Expression::If(condition, consequence, alternative) = if_expression else {
+            panic!("expected an If(_, _, _). Got {:?}", if_expression);
+        };
+
+        assert!(test_infix_expression(condition, &"x", "<", &"y"));
+
+        let Statement::BlockStatement(block_statements) = &**consequence else {
+            panic!("expected a BlockStatement(_). Got {:?}", consequence);
+        };
+
+        assert_eq!(block_statements.len(), 1);
+        let Statement::ExpressionStatement(consequence_expression) = &*block_statements[0] else {
+            panic!("expected an ExpressionStatement. Got {:?}", block_statements[0]);
+        };
+        assert!(test_literal_expression(consequence_expression, &"x"));
+
+        assert!(alternative.is_none())
+    }
+
+    #[test]
+    fn test_if_else_expression() {
+        let input = "if (x < y) { x } else { y }";
+        let mut parser = Parser::new(Lexer::new(input));
+        let program = parser.parse_program();
+
+        assert!(parser.errors().is_empty(), "{:?}", parser.errors());
+
+        assert_eq!(program.statements.len(), 1);
+
+        let Statement::ExpressionStatement(if_expression) = &program.statements[0] else {
+            panic!("expected an ExpressionStatement. Got {:?}", program.statements[0]);
+        };
+
+        let Expression::If(condition, consequence, alternative) = if_expression else {
+            panic!("expected an If(_, _, _). Got {:?}", if_expression);
+        };
+
+        assert!(test_infix_expression(condition, &"x", "<", &"y"));
+
+        let Statement::BlockStatement(block_statements) = &**consequence else {
+            panic!("expected a BlockStatement(_). Got {:?}", consequence);
+        };
+
+        assert_eq!(block_statements.len(), 1);
+        let Statement::ExpressionStatement(consequence_expression) = &*block_statements[0] else {
+            panic!("expected an ExpressionStatement. Got {:?}", block_statements[0]);
+        };
+        assert!(test_literal_expression(consequence_expression, &"x"));
+
+        let Some(alternative) = alternative else {
+            panic!("expected an else block. Got {:?}", alternative);
+        };
+
+        let Statement::BlockStatement(else_statements) = &**alternative else {
+            panic!("expected a BlockStatement(_). Got {:?}", alternative);
+        };
+
+        let Statement::ExpressionStatement(alterative_expression) = &*else_statements[0] else {
+            panic!("expected an ExpressionStaement. Got {:?}", else_statements[0]);
+        };
+
+        assert!(test_literal_expression(alterative_expression, &"y"));
     }
 }

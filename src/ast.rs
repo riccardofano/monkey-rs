@@ -10,6 +10,7 @@ pub enum Statement {
     LetStatement(Identifier, Expression),
     ReturnStatement(Expression),
     ExpressionStatement(Expression),
+    BlockStatement(Vec<Box<Statement>>),
 }
 
 impl Display for Statement {
@@ -18,6 +19,13 @@ impl Display for Statement {
             Statement::LetStatement(ident, value) => format!("let {} = {value};", ident.0),
             Statement::ReturnStatement(value) => format!("return {value};"),
             Statement::ExpressionStatement(value) => value.to_string(),
+            Statement::BlockStatement(statements) => {
+                let mut buf = String::new();
+                for statement in statements {
+                    buf.push_str(&statement.to_string())
+                }
+                buf
+            }
         };
         write!(f, "{matched}")
     }
@@ -28,6 +36,8 @@ pub enum Expression {
     Identifier(Identifier),
     Integer(usize),
     Boolean(bool),
+
+    If(Box<Expression>, Box<Statement>, Option<Box<Statement>>),
 
     Prefix(TokenKind, Box<Expression>),
     Infix(Box<Expression>, TokenKind, Box<Expression>),
@@ -42,6 +52,14 @@ impl Display for Expression {
             Expression::Identifier(ident) => ident.0.clone(),
             Expression::Integer(int) => int.to_string(),
             Expression::Boolean(bool) => bool.to_string(),
+            Expression::If(condition, consequence, maybe_alterative) => {
+                let mut buf = format!("if {condition} {consequence}");
+                if let Some(alternative) = maybe_alterative {
+                    buf.push_str("else ");
+                    buf.push_str(&alternative.to_string())
+                }
+                buf
+            }
             Expression::Prefix(token, expr) => format!("({token}{expr})"),
             Expression::Infix(left, token, right) => format!("({left} {token} {right})"),
         };
