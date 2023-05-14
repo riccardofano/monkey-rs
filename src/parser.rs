@@ -258,17 +258,17 @@ mod tests {
     use crate::ast::Statement;
 
     trait TestExpression {
-        fn test_expression(self, expression: &Expression) -> bool;
+        fn test_expression(&self, expression: &Expression) -> bool;
     }
 
     impl TestExpression for &str {
-        fn test_expression(self, expression: &Expression) -> bool {
+        fn test_expression(&self, expression: &Expression) -> bool {
             let Expression::Identifier(ident) = expression else {
             eprintln!("expression is not Identifier(_). Got: {:?}", expression);
             return false;
         };
 
-            if ident.0 != self {
+            if &ident.0 != self {
                 eprintln!("identifier value is not {self}. Got {:?}", ident);
                 return false;
             }
@@ -278,13 +278,13 @@ mod tests {
     }
 
     impl TestExpression for usize {
-        fn test_expression(self, expression: &Expression) -> bool {
+        fn test_expression(&self, expression: &Expression) -> bool {
             let Expression::Integer(int) = expression else {
                 eprintln!("expression is not Integer(_). Got {:?}", expression);
                 return false;
             };
 
-            if int != &self {
+            if int != self {
                 eprintln!("integer value is not {self}. Got {:?}", int);
                 return false;
             }
@@ -293,13 +293,13 @@ mod tests {
     }
 
     impl TestExpression for bool {
-        fn test_expression(self, expression: &Expression) -> bool {
+        fn test_expression(&self, expression: &Expression) -> bool {
             let Expression::Boolean(bool) = expression else {
                 eprintln!("expression is not Boolean(_). Got: {:?}", expression);
                 return false;
             };
 
-            if bool != &self {
+            if bool != self {
                 eprintln!("boolean value is not {self}. Got {:?}", bool);
                 return false;
             }
@@ -312,11 +312,11 @@ mod tests {
         value.test_expression(expression)
     }
 
-    fn test_infix_expression<T: TestExpression>(
+    fn test_infix_expression<T: TestExpression + ?Sized>(
         infix: &Expression,
-        left: T,
+        left: &T,
         operator: &str,
-        right: T,
+        right: &T,
     ) -> bool {
         let Expression::Infix(left_expression, op, right_expresssion) = infix else {
             eprintln!("expression is not Infix(_,_,_). Got: {:?}", infix);
@@ -471,15 +471,18 @@ mod tests {
 
     #[test]
     fn test_parsing_infix_expressions() {
-        let inputs: Vec<(&str, usize, &str, usize)> = vec![
-            ("5 + 5;", 5, "+", 5),
-            ("5 - 5;", 5, "-", 5),
-            ("5 * 5;", 5, "*", 5),
-            ("5 / 5;", 5, "/", 5),
-            ("5 < 5;", 5, "<", 5),
-            ("5 > 5;", 5, ">", 5),
-            ("5 == 5;", 5, "==", 5),
-            ("5 != 5;", 5, "!=", 5),
+        let inputs: Vec<(&str, &dyn TestExpression, &str, &dyn TestExpression)> = vec![
+            ("5 + 5;", &5, "+", &5),
+            ("5 - 5;", &5, "-", &5),
+            ("5 * 5;", &5, "*", &5),
+            ("5 / 5;", &5, "/", &5),
+            ("5 < 5;", &5, "<", &5),
+            ("5 > 5;", &5, ">", &5),
+            ("5 == 5;", &5, "==", &5),
+            ("5 != 5;", &5, "!=", &5),
+            ("true == true", &true, "==", &true),
+            ("true != false", &true, "!=", &false),
+            ("false == false", &false, "==", &false),
         ];
 
         for input in inputs {
