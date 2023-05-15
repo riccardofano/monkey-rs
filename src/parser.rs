@@ -163,6 +163,31 @@ impl Parser {
         Ok(Statement::BlockStatement(statements))
     }
 
+    fn parse_function_params(&mut self) -> Result<Vec<Expression>, String> {
+        let mut identifiers = Vec::new();
+        if self.peek_token_is(&TokenKind::Rparen) {
+            self.next_token();
+            return Ok(identifiers);
+        }
+
+        identifiers.push(self.parse_identifier()?);
+        while self.peek_token_is(&TokenKind::Comma) {
+            self.next_token();
+            identifiers.push(self.parse_identifier()?);
+        }
+        self.expect_peek(&TokenKind::Rparen)?;
+
+        Ok(identifiers)
+    }
+
+    fn parse_identifier(&mut self) -> Result<Expression, String> {
+        self.next_token();
+        let TokenKind::Ident(value) = &self.current_token.kind else {
+            return Err(format!("Expected an identifier. Got {:?}", self.current_token));
+        };
+        Ok(Expression::Identifier(Identifier(value.clone())))
+    }
+
     fn parse_expression_statement(&mut self, precedence: Precedence) -> Result<Statement, String> {
         let expression = self.parse_expression(precedence)?;
         if self.peek_token_is(&TokenKind::Semicolon) {
@@ -205,6 +230,7 @@ impl Parser {
                 | TokenKind::Minus
                 | TokenKind::Lparen
                 | TokenKind::If
+                | TokenKind::Function
         )
     }
 
@@ -266,6 +292,14 @@ impl Parser {
                     alternative = Some(Box::new(self.parse_block_statement()?));
                 }
                 Expression::If(Box::new(condition), Box::new(consequence), alternative)
+            }
+            TokenKind::Function => {
+                self.expect_peek(&TokenKind::Lparen)?;
+                let params = self.parse_function_params()?;
+                self.expect_peek(&TokenKind::Lbrace)?;
+                let body = self.parse_block_statement()?;
+
+                Expression::Function(params, Box::new(body))
             }
             _ => unimplemented!(),
         };
@@ -681,5 +715,37 @@ mod tests {
         };
 
         assert!(test_literal_expression(alterative_expression, &"y"));
+    }
+
+    fn test_function_parsing() {
+        let input = "fn(x, y) { x + y }";
+        let mut parser = Parser::new(Lexer::new(input));
+        let program = parser.parse_program();
+
+        assert!(parser.errors().is_empty(), "{:?}", parser.errors());
+
+        assert_eq!(program.statements.len(), 1, "{:?}", program.statements);
+
+        let Statement::ExpressionStatement(expression) = &program.statements[0] else {
+            panic!("expected an ExpressionStatement. Got {:?}", program.statements[0]);
+        };
+
+        let Expression::Function(params, body) = expression else {
+            panic!("exptected a Function(_,_). Got {:?}", expression);
+        };
+
+        assert_eq!(params.len(), 2, "{:?}", params);
+        assert!(test_literal_expression(&params[0], &"x"));
+        assert!(test_literal_expression(&params[1], &"y"));
+
+        let Statement::BlockStatement(block) = &**body else {
+            panic!("expected a BlockStatement. Got {:?}", body);
+        };
+
+        assert_eq!(block.len(), 1, "{:?}", block);
+        let Statement::ExpressionStatement(infix) = &*block[0] else {
+            panic!("expected an ExpressionStatement. Got {:?}", block[0]);
+        };
+        assert!(test_infix_expression(infix, &"x", "+", &"y"));
     }
 }

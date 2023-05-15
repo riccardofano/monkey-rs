@@ -38,6 +38,7 @@ pub enum Expression {
     Boolean(bool),
 
     If(Box<Expression>, Box<Statement>, Option<Box<Statement>>),
+    Function(Vec<Expression>, Box<Statement>),
 
     Prefix(TokenKind, Box<Expression>),
     Infix(Box<Expression>, TokenKind, Box<Expression>),
@@ -59,6 +60,16 @@ impl Display for Expression {
                     buf.push_str(&alternative.to_string())
                 }
                 buf
+            }
+            Expression::Function(params, body) => {
+                format!(
+                    "fn({}) {body}",
+                    params
+                        .iter()
+                        .map(|expr| expr.to_string())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
             }
             Expression::Prefix(token, expr) => format!("({token}{expr})"),
             Expression::Infix(left, token, right) => format!("({left} {token} {right})"),
