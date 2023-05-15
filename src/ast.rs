@@ -45,6 +45,7 @@ pub enum Expression {
 
     If(Box<Expression>, Box<Statement>, Option<Box<Statement>>),
     Function(Vec<Expression>, Box<Statement>),
+    Call(Box<Expression>, Vec<Expression>),
 
     Prefix(TokenKind, Box<Expression>),
     Infix(Box<Expression>, TokenKind, Box<Expression>),
@@ -68,14 +69,20 @@ impl Display for Expression {
                 buf
             }
             Expression::Function(params, body) => {
-                format!(
-                    "fn({}) {body}",
-                    params
-                        .iter()
-                        .map(|expr| expr.to_string())
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                )
+                let params = params
+                    .iter()
+                    .map(|expr| expr.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                format!("fn({params}) {body}")
+            }
+            Expression::Call(ident, args) => {
+                let args = args
+                    .iter()
+                    .map(|expr| expr.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                format!("{ident}({args})")
             }
             Expression::Prefix(token, expr) => format!("({token}{expr})"),
             Expression::Infix(left, token, right) => format!("({left} {token} {right})"),

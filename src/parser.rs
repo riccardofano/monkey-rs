@@ -245,6 +245,7 @@ impl Parser {
                 | TokenKind::GreaterThan
                 | TokenKind::Equal
                 | TokenKind::NotEqual
+                | TokenKind::Lparen
         )
     }
 
@@ -309,11 +310,38 @@ impl Parser {
 
     fn parse_infix(&mut self, left: Expression) -> Result<Expression, String> {
         let token = self.current_token.kind.clone();
-        let precedence = self.current_precedence();
-        self.next_token();
+        match token {
+            TokenKind::Lparen => {
+                let right = self.parse_call_expression()?;
+                Ok(Expression::Call(Box::new(left), right))
+            }
+            _ => {
+                let precedence = self.current_precedence();
+                self.next_token();
 
-        let right = self.parse_expression(precedence)?;
-        Ok(Expression::Infix(Box::new(left), token, Box::new(right)))
+                let right = self.parse_expression(precedence)?;
+                Ok(Expression::Infix(Box::new(left), token, Box::new(right)))
+            }
+        }
+    }
+
+    fn parse_call_expression(&mut self) -> Result<Vec<Expression>, String> {
+        let mut args = Vec::new();
+        if self.peek_token_is(&TokenKind::Rparen) {
+            self.next_token();
+            return Ok(args);
+        }
+
+        self.next_token();
+        args.push(self.parse_expression(Precedence::Lowest)?);
+        while self.peek_token_is(&TokenKind::Comma) {
+            self.next_token();
+            self.next_token();
+            args.push(self.parse_expression(Precedence::Lowest)?);
+        }
+
+        self.expect_peek(&TokenKind::Rparen)?;
+        Ok(args)
     }
 
     fn peek_precedence(&self) -> Precedence {
@@ -609,13 +637,27 @@ mod tests {
             ("2 / (5 + 5)", "(2 / (5 + 5))"),
             ("-(5 + 5)", "(-(5 + 5))"),
             ("!(true == true)", "(!(true == true))"),
+            ("a + add(b * c) + d", "((a + add((b * c))) + d)"),
+            (
+                "add(a, b, 1, 2 * 3, 4 + 5, add(6, 7 * 8))",
+                "add(a, b, 1, (2 * 3), (4 + 5), add(6, (7 * 8)))",
+            ),
+            (
+                "add(a + b + c * d / f + g)",
+                "add((((a + b) + ((c * d) / f)) + g))",
+            ),
         ];
 
         for input in inputs {
             let mut parser = Parser::new(Lexer::new(input.0));
             let program = parser.parse_program();
 
-            assert!(parser.errors().is_empty());
+            assert!(
+                parser.errors().is_empty(),
+                "input: {}, {:?}",
+                input.0,
+                parser.errors()
+            );
 
             assert_eq!(program.to_string(), input.1);
         }
@@ -776,5 +818,28 @@ mod tests {
                 assert!(test_literal_expression(&params[i], param));
             }
         }
+    }
+
+    fn test_call_parsing() {
+        let input = "add(1, 2 * 3, 4 + 5);";
+        let mut parser = Parser::new(Lexer::new(input));
+        let program = parser.parse_program();
+
+        assert!(parser.errors().is_empty(), "{:?}", parser.errors());
+        assert_eq!(program.statements.len(), 1, "{:?}", program.statements);
+
+        let Statement::ExpressionStatement(expression) = &program.statements[0] else {
+            panic!("expected an ExpressionStament. Got {:?}", program.statements[0]);
+        };
+
+        let Expression::Call(ident, args) = expression else {
+            panic!("expected a Call(_,_). Got {:?}", expression);
+        };
+
+        assert!(test_literal_expression(ident, &"add"));
+        assert_eq!(args.len(), 3, "{:?}", args);
+        assert!(test_literal_expression(&args[0], &1));
+        assert!(test_infix_expression(&args[1], &2, "*", &3));
+        assert!(test_infix_expression(&args[2], &4, "+", &5));
     }
 }
