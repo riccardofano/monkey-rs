@@ -748,4 +748,33 @@ mod tests {
         };
         assert!(test_infix_expression(infix, &"x", "+", &"y"));
     }
+
+    fn test_function_param_parsing() {
+        let inputs: Vec<(&str, Vec<&str>)> = vec![
+            ("fn() {}", vec![]),
+            ("fn(x) {}", vec!["x"]),
+            ("fn(x,y,z) {}", vec!["x", "y", "z"]),
+        ];
+        for input in inputs {
+            let mut parser = Parser::new(Lexer::new(input.0));
+            let program = parser.parse_program();
+
+            assert!(parser.errors().is_empty(), "{:?}", parser.errors());
+
+            assert_eq!(program.statements.len(), 1, "{:?}", program.statements);
+
+            let Statement::ExpressionStatement(expression) = &program.statements[0] else {
+                panic!("expected an ExpressionStatement. Got {:?}", program.statements[0]);
+            };
+
+            let Expression::Function(params, _) = expression else {
+                panic!("exptected a Function(_,_). Got {:?}", expression);
+            };
+
+            assert_eq!(params.len(), input.1.len(), "{:?}", params);
+            for (i, param) in input.1.iter().enumerate() {
+                assert!(test_literal_expression(&params[i], param));
+            }
+        }
+    }
 }
