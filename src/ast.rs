@@ -5,6 +5,12 @@ use crate::token::TokenKind;
 #[derive(Debug)]
 pub struct Identifier(pub String);
 
+impl Display for Identifier {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 #[derive(Debug)]
 pub enum Statement {
     LetStatement(Identifier, Expression),
@@ -16,7 +22,7 @@ pub enum Statement {
 impl Display for Statement {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let matched = match self {
-            Statement::LetStatement(ident, value) => format!("let {} = {value};", ident.0),
+            Statement::LetStatement(ident, value) => format!("let {ident} = {value};"),
             Statement::ReturnStatement(value) => format!("return {value};"),
             Statement::ExpressionStatement(value) => value.to_string(),
             Statement::BlockStatement(statements) => {
@@ -50,7 +56,7 @@ impl Display for Expression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let matched = match self {
             Expression::Placeholder => "PLACEHOLDER".to_string(),
-            Expression::Identifier(ident) => ident.0.clone(),
+            Expression::Identifier(ident) => ident.to_string(),
             Expression::Integer(int) => int.to_string(),
             Expression::Boolean(bool) => bool.to_string(),
             Expression::If(condition, consequence, maybe_alterative) => {
