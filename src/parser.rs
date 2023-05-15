@@ -120,33 +120,26 @@ impl Parser {
         let name = name.clone();
 
         self.next_token();
+        self.expect_peek(&TokenKind::Assign)?;
+        self.next_token();
 
-        if self.peeked_token.kind != TokenKind::Assign {
-            return Err(format!(
-                "expected TokenKind to be Assign, got {:?}",
-                self.peeked_token.kind
-            ));
-        };
-
-        while !self.current_token_is(&TokenKind::Semicolon) {
+        let value = self.parse_expression(Precedence::Lowest)?;
+        if self.peek_token_is(&TokenKind::Semicolon) {
             self.next_token();
         }
 
-        Ok(Statement::LetStatement(
-            Identifier(name),
-            Expression::Placeholder,
-        ))
+        Ok(Statement::LetStatement(Identifier(name), value))
     }
 
     fn parse_return_statement(&mut self) -> Result<Statement, String> {
         self.next_token();
 
-        // TODO: parse expression; We're skipping until a semicolon for now.
-        while !self.current_token_is(&TokenKind::Semicolon) {
+        let return_value = self.parse_expression(Precedence::Lowest)?;
+        if self.peek_token_is(&TokenKind::Semicolon) {
             self.next_token();
         }
 
-        Ok(Statement::ReturnStatement(Expression::Placeholder))
+        Ok(Statement::ReturnStatement(return_value))
     }
 
     fn parse_block_statement(&mut self) -> Result<Statement, String> {
@@ -447,40 +440,26 @@ mod tests {
 
     #[test]
     fn test_let_statements() {
-        let input = r#"let x = 5;
-        let y = 10;
-        let foobar = 838383;"#;
+        let inputs: Vec<(&str, &str, &dyn TestExpression)> = vec![
+            ("let x = 5;", "x", &5),
+            ("let y = true;", "y", &true),
+            ("let foobar = y;", "foobar", &"y"),
+        ];
 
-        let lexer = Lexer::new(input);
-        let mut parser = Parser::new(lexer);
-        let program = parser.parse_program();
+        for input in inputs {
+            let mut parser = Parser::new(Lexer::new(input.0));
+            let program = parser.parse_program();
 
-        assert!(parser.errors().is_empty(), "{:?}", parser.errors());
+            assert!(parser.errors().is_empty(), "{:?}", parser.errors());
+            assert_eq!(program.statements.len(), 1, "{:?}", program.statements);
 
-        if program.statements.len() != 3 {
-            panic!(
-                "The program does not contain 3 statements. Got {}",
-                program.statements.len()
-            )
+            let Statement::LetStatement(ident, value) = &program.statements[0] else {
+                panic!("expected a LetStatement(_,_). Got {:?}", program.statements[0]);
+            };
+
+            assert_eq!(&ident.0, input.1);
+            assert!(test_literal_expression(value, input.2));
         }
-
-        let tests = vec!["x", "y", "foobar"];
-        for (expected, statement) in tests.into_iter().zip(program.statements) {
-            assert!(is_let_statement(statement, expected));
-        }
-    }
-
-    fn is_let_statement(statement: Statement, name: &str) -> bool {
-        let Statement::LetStatement(identifier, _) = statement else {
-            eprintln!("statement is not let, got: {:?}", statement);
-            return false;
-        };
-
-        if identifier.0 != name {
-            eprintln!("TokenKind wasn't identifier, got: {}", identifier.0);
-            return false;
-        };
-        true
     }
 
     #[test]
@@ -759,6 +738,7 @@ mod tests {
         assert!(test_literal_expression(alterative_expression, &"y"));
     }
 
+    #[test]
     fn test_function_parsing() {
         let input = "fn(x, y) { x + y }";
         let mut parser = Parser::new(Lexer::new(input));
@@ -791,6 +771,7 @@ mod tests {
         assert!(test_infix_expression(infix, &"x", "+", &"y"));
     }
 
+    #[test]
     fn test_function_param_parsing() {
         let inputs: Vec<(&str, Vec<&str>)> = vec![
             ("fn() {}", vec![]),
@@ -820,6 +801,7 @@ mod tests {
         }
     }
 
+    #[test]
     fn test_call_parsing() {
         let input = "add(1, 2 * 3, 4 + 5);";
         let mut parser = Parser::new(Lexer::new(input));
