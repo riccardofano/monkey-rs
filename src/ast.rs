@@ -100,15 +100,6 @@ impl Program {
     }
 }
 
-impl Program {
-    pub fn token_literal(&self) -> String {
-        let Some(statement) = self.statements.get(0) else {
-            return String::new();
-        };
-        todo!()
-    }
-}
-
 impl Display for Program {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         let statements = self
