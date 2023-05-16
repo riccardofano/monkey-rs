@@ -13,19 +13,19 @@ impl Display for Identifier {
 
 #[derive(Debug)]
 pub enum Statement {
-    LetStatement(Identifier, Expression),
-    ReturnStatement(Expression),
-    ExpressionStatement(Expression),
-    BlockStatement(Vec<Statement>),
+    Let(Identifier, Expression),
+    Return(Expression),
+    Expression(Expression),
+    Block(Vec<Statement>),
 }
 
 impl Display for Statement {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let matched = match self {
-            Statement::LetStatement(ident, value) => format!("let {ident} = {value};"),
-            Statement::ReturnStatement(value) => format!("return {value};"),
-            Statement::ExpressionStatement(value) => value.to_string(),
-            Statement::BlockStatement(statements) => {
+            Statement::Let(ident, value) => format!("let {ident} = {value};"),
+            Statement::Return(value) => format!("return {value};"),
+            Statement::Expression(value) => value.to_string(),
+            Statement::Block(statements) => {
                 let mut buf = String::new();
                 for statement in statements {
                     buf.push_str(&statement.to_string())

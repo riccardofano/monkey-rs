@@ -128,7 +128,7 @@ impl Parser {
             self.next_token();
         }
 
-        Ok(Statement::LetStatement(Identifier(name), value))
+        Ok(Statement::Let(Identifier(name), value))
     }
 
     fn parse_return_statement(&mut self) -> Result<Statement, String> {
@@ -139,7 +139,7 @@ impl Parser {
             self.next_token();
         }
 
-        Ok(Statement::ReturnStatement(return_value))
+        Ok(Statement::Return(return_value))
     }
 
     fn parse_block_statement(&mut self) -> Result<Statement, String> {
@@ -153,7 +153,7 @@ impl Parser {
             }
             self.next_token();
         }
-        Ok(Statement::BlockStatement(statements))
+        Ok(Statement::Block(statements))
     }
 
     fn parse_function_params(&mut self) -> Result<Vec<Expression>, String> {
@@ -187,7 +187,7 @@ impl Parser {
             self.next_token();
         }
 
-        Ok(Statement::ExpressionStatement(expression))
+        Ok(Statement::Expression(expression))
     }
 
     fn parse_expression(&mut self, precedence: Precedence) -> Result<Expression, String> {
@@ -453,7 +453,7 @@ mod tests {
             assert!(parser.errors().is_empty(), "{:?}", parser.errors());
             assert_eq!(program.statements.len(), 1, "{:?}", program.statements);
 
-            let Statement::LetStatement(ident, value) = &program.statements[0] else {
+            let Statement::Let(ident, value) = &program.statements[0] else {
                 panic!("expected a LetStatement(_,_). Got {:?}", program.statements[0]);
             };
 
@@ -482,7 +482,7 @@ mod tests {
         }
 
         for statement in program.statements {
-            let Statement::ReturnStatement(_) = statement else {
+            let Statement::Return(_) = statement else {
                 eprintln!("statement is not let, got: {:?}", statement);
                 continue;
             };
@@ -501,7 +501,7 @@ mod tests {
             panic!("expected 1 statement. Got {}", program.statements.len());
         }
 
-        let Statement::ExpressionStatement(ident) = &program.statements[0] else {
+        let Statement::Expression(ident) = &program.statements[0] else {
             panic!("expected an ExpressionStatement. Got {}", program.statements[0]);
         };
 
@@ -520,7 +520,7 @@ mod tests {
             panic!("expected 1 statement. Got {}", program.statements.len());
         }
 
-        let Statement::ExpressionStatement(ident) = &program.statements[0] else {
+        let Statement::Expression(ident) = &program.statements[0] else {
             panic!("expected an ExpressionStatement. Got {}", program.statements[0]);
         };
 
@@ -546,7 +546,7 @@ mod tests {
                 panic!("expected 1 statement. Got {}", program.statements.len());
             }
 
-            let Statement::ExpressionStatement(expression) = &program.statements[0] else {
+            let Statement::Expression(expression) = &program.statements[0] else {
             panic!("expected an ExpressionStatement. Got {}", program.statements[0]);
             };
 
@@ -585,7 +585,7 @@ mod tests {
                 panic!("expected 1 statement. Got {}", program.statements.len());
             }
 
-            let Statement::ExpressionStatement(expression) = &program.statements[0] else {
+            let Statement::Expression(expression) = &program.statements[0] else {
             panic!("expected an ExpressionStatement. Got {}", program.statements[0]);
             };
 
@@ -652,7 +652,7 @@ mod tests {
 
             assert!(parser.errors().is_empty());
 
-            let Statement::ExpressionStatement(expression) = &program.statements[0] else {
+            let Statement::Expression(expression) = &program.statements[0] else {
                 panic!("expected an ExpressionStatement. Got {:?}", program.statements[0]);
             };
 
@@ -670,7 +670,7 @@ mod tests {
 
         assert_eq!(program.statements.len(), 1);
 
-        let Statement::ExpressionStatement(if_expression) = &program.statements[0] else {
+        let Statement::Expression(if_expression) = &program.statements[0] else {
             panic!("expected an ExpressionStatement. Got {:?}", program.statements[0]);
         };
 
@@ -680,12 +680,12 @@ mod tests {
 
         assert!(test_infix_expression(condition, &"x", "<", &"y"));
 
-        let Statement::BlockStatement(block_statements) = &**consequence else {
+        let Statement::Block(block_statements) = &**consequence else {
             panic!("expected a BlockStatement(_). Got {:?}", consequence);
         };
 
         assert_eq!(block_statements.len(), 1);
-        let Statement::ExpressionStatement(consequence_expression) = &block_statements[0] else {
+        let Statement::Expression(consequence_expression) = &block_statements[0] else {
             panic!("expected an ExpressionStatement. Got {:?}", block_statements[0]);
         };
         assert!(test_literal_expression(consequence_expression, &"x"));
@@ -703,7 +703,7 @@ mod tests {
 
         assert_eq!(program.statements.len(), 1);
 
-        let Statement::ExpressionStatement(if_expression) = &program.statements[0] else {
+        let Statement::Expression(if_expression) = &program.statements[0] else {
             panic!("expected an ExpressionStatement. Got {:?}", program.statements[0]);
         };
 
@@ -713,12 +713,12 @@ mod tests {
 
         assert!(test_infix_expression(condition, &"x", "<", &"y"));
 
-        let Statement::BlockStatement(block_statements) = &**consequence else {
+        let Statement::Block(block_statements) = &**consequence else {
             panic!("expected a BlockStatement(_). Got {:?}", consequence);
         };
 
         assert_eq!(block_statements.len(), 1);
-        let Statement::ExpressionStatement(consequence_expression) = &block_statements[0] else {
+        let Statement::Expression(consequence_expression) = &block_statements[0] else {
             panic!("expected an ExpressionStatement. Got {:?}", block_statements[0]);
         };
         assert!(test_literal_expression(consequence_expression, &"x"));
@@ -727,11 +727,11 @@ mod tests {
             panic!("expected an else block. Got {:?}", alternative);
         };
 
-        let Statement::BlockStatement(else_statements) = &**alternative else {
+        let Statement::Block(else_statements) = &**alternative else {
             panic!("expected a BlockStatement(_). Got {:?}", alternative);
         };
 
-        let Statement::ExpressionStatement(alterative_expression) = &else_statements[0] else {
+        let Statement::Expression(alterative_expression) = &else_statements[0] else {
             panic!("expected an ExpressionStaement. Got {:?}", else_statements[0]);
         };
 
@@ -748,7 +748,7 @@ mod tests {
 
         assert_eq!(program.statements.len(), 1, "{:?}", program.statements);
 
-        let Statement::ExpressionStatement(expression) = &program.statements[0] else {
+        let Statement::Expression(expression) = &program.statements[0] else {
             panic!("expected an ExpressionStatement. Got {:?}", program.statements[0]);
         };
 
@@ -760,12 +760,12 @@ mod tests {
         assert!(test_literal_expression(&params[0], &"x"));
         assert!(test_literal_expression(&params[1], &"y"));
 
-        let Statement::BlockStatement(block) = &**body else {
+        let Statement::Block(block) = &**body else {
             panic!("expected a BlockStatement. Got {:?}", body);
         };
 
         assert_eq!(block.len(), 1, "{:?}", block);
-        let Statement::ExpressionStatement(infix) = &block[0] else {
+        let Statement::Expression(infix) = &block[0] else {
             panic!("expected an ExpressionStatement. Got {:?}", block[0]);
         };
         assert!(test_infix_expression(infix, &"x", "+", &"y"));
@@ -786,7 +786,7 @@ mod tests {
 
             assert_eq!(program.statements.len(), 1, "{:?}", program.statements);
 
-            let Statement::ExpressionStatement(expression) = &program.statements[0] else {
+            let Statement::Expression(expression) = &program.statements[0] else {
                 panic!("expected an ExpressionStatement. Got {:?}", program.statements[0]);
             };
 
@@ -810,7 +810,7 @@ mod tests {
         assert!(parser.errors().is_empty(), "{:?}", parser.errors());
         assert_eq!(program.statements.len(), 1, "{:?}", program.statements);
 
-        let Statement::ExpressionStatement(expression) = &program.statements[0] else {
+        let Statement::Expression(expression) = &program.statements[0] else {
             panic!("expected an ExpressionStament. Got {:?}", program.statements[0]);
         };
 
