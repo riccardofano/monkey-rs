@@ -16,7 +16,7 @@ pub enum Statement {
     LetStatement(Identifier, Expression),
     ReturnStatement(Expression),
     ExpressionStatement(Expression),
-    BlockStatement(Vec<Box<Statement>>),
+    BlockStatement(Vec<Statement>),
 }
 
 impl Display for Statement {

@@ -149,7 +149,7 @@ impl Parser {
         while !self.current_token_is(&TokenKind::Rbrace) && !self.current_token_is(&TokenKind::Eof)
         {
             if let Some(statement) = self.parse_statement() {
-                statements.push(Box::new(statement));
+                statements.push(statement);
             }
             self.next_token();
         }
@@ -685,7 +685,7 @@ mod tests {
         };
 
         assert_eq!(block_statements.len(), 1);
-        let Statement::ExpressionStatement(consequence_expression) = &*block_statements[0] else {
+        let Statement::ExpressionStatement(consequence_expression) = &block_statements[0] else {
             panic!("expected an ExpressionStatement. Got {:?}", block_statements[0]);
         };
         assert!(test_literal_expression(consequence_expression, &"x"));
@@ -718,7 +718,7 @@ mod tests {
         };
 
         assert_eq!(block_statements.len(), 1);
-        let Statement::ExpressionStatement(consequence_expression) = &*block_statements[0] else {
+        let Statement::ExpressionStatement(consequence_expression) = &block_statements[0] else {
             panic!("expected an ExpressionStatement. Got {:?}", block_statements[0]);
         };
         assert!(test_literal_expression(consequence_expression, &"x"));
@@ -731,7 +731,7 @@ mod tests {
             panic!("expected a BlockStatement(_). Got {:?}", alternative);
         };
 
-        let Statement::ExpressionStatement(alterative_expression) = &*else_statements[0] else {
+        let Statement::ExpressionStatement(alterative_expression) = &else_statements[0] else {
             panic!("expected an ExpressionStaement. Got {:?}", else_statements[0]);
         };
 
@@ -765,7 +765,7 @@ mod tests {
         };
 
         assert_eq!(block.len(), 1, "{:?}", block);
-        let Statement::ExpressionStatement(infix) = &*block[0] else {
+        let Statement::ExpressionStatement(infix) = &block[0] else {
             panic!("expected an ExpressionStatement. Got {:?}", block[0]);
         };
         assert!(test_infix_expression(infix, &"x", "+", &"y"));
