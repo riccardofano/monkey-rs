@@ -49,14 +49,11 @@ pub enum Expression {
 
     Prefix(TokenKind, Box<Expression>),
     Infix(Box<Expression>, TokenKind, Box<Expression>),
-
-    Placeholder,
 }
 
 impl Display for Expression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let matched = match self {
-            Expression::Placeholder => "PLACEHOLDER".to_string(),
             Expression::Identifier(ident) => ident.to_string(),
             Expression::Integer(int) => int.to_string(),
             Expression::Boolean(bool) => bool.to_string(),
