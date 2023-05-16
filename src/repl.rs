@@ -1,6 +1,6 @@
 use std::io::{self, BufRead, Write};
 
-use crate::{lexer::Lexer, token::TokenKind};
+use crate::{lexer::Lexer, parser::Parser};
 
 const PROMPT: &str = ">> ";
 
@@ -16,16 +16,19 @@ pub fn start(mut input: impl BufRead) -> io::Result<()> {
             return Ok(());
         };
 
-        let mut lexer = Lexer::new(&buf);
+        let mut parser = Parser::new(Lexer::new(&buf));
+        let program = parser.parse_program();
 
-        loop {
-            let token = lexer.next_token();
-            if token.kind == TokenKind::Eof {
-                break;
-            }
-            println!("{token:?}");
+        let errors = parser.errors();
+        if !errors.is_empty() {
+            print_parser_errors(errors);
         }
+        println!("{program}");
 
-        buf.clear()
+        buf.clear();
     }
+}
+
+fn print_parser_errors(errors: &[String]) {
+    errors.iter().for_each(|e| println!("\t{e}"))
 }

@@ -33,7 +33,7 @@ impl From<&TokenKind> for Precedence {
 }
 
 #[derive(Debug)]
-struct Parser {
+pub struct Parser {
     lexer: Lexer,
     current_token: Token,
     peeked_token: Token,
