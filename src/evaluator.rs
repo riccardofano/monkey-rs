@@ -25,6 +25,9 @@ impl Eval for Expression {
                 let value = value.eval();
                 eval_prefix_expression(op, value)
             }
+            Expression::Infix(left, op, right) => {
+                eval_infix_expression(left.eval(), op, right.eval())
+            }
             _ => todo!(),
         }
     }
@@ -53,6 +56,26 @@ fn eval_minus_operator(value: Object) -> Object {
     };
 
     Object::Integer(-int)
+}
+
+fn eval_infix_expression(left: Object, operator: &TokenKind, right: Object) -> Object {
+    match (left, right) {
+        (Object::Integer(left_int), Object::Integer(right_int)) => {
+            eval_integer_infix_expression(left_int, operator, right_int)
+        }
+        (_, _) => Object::Null,
+    }
+}
+
+fn eval_integer_infix_expression(left: i64, operator: &TokenKind, right: i64) -> Object {
+    let result = match operator {
+        TokenKind::Plus => left + right,
+        TokenKind::Minus => left - right,
+        TokenKind::Asterisk => left * right,
+        TokenKind::Slash => left / right,
+        _ => return Object::Null,
+    };
+    Object::Integer(result)
 }
 
 impl Eval for Statement {
@@ -95,7 +118,23 @@ mod tests {
 
     #[test]
     fn test_eval_integer_expressions() {
-        let inputs: Vec<(&str, i64)> = vec![("5", 5), ("10", 10)];
+        let inputs: Vec<(&str, i64)> = vec![
+            ("5", 5),
+            ("10", 10),
+            ("-5", -5),
+            ("-10", -10),
+            ("5 + 5 + 5 + 5 - 10", 10),
+            ("2 * 2 * 2 * 2 * 2", 32),
+            ("-50 + 100 + -50", 0),
+            ("5 * 2 + 10", 20),
+            ("5 + 2 * 10", 25),
+            ("20 + 2 * -10", 0),
+            ("50 / 2 * 2 + 10", 60),
+            ("2 * (5 + 10)", 30),
+            ("3 * 3 * 3 + 10", 37),
+            ("3 * (3 * 3) + 10", 37),
+            ("(5 + 10 * 2 + 15 / 3) * 2 + -10", 50),
+        ];
 
         for input in inputs {
             let evaluated = test_eval(input.0);
@@ -127,16 +166,6 @@ mod tests {
         for input in inputs {
             let evaluated = test_eval(input.0);
             assert_boolean_object(&evaluated, input.1)
-        }
-    }
-
-    #[test]
-    fn test_minus_operator() {
-        let inputs: Vec<(&str, i64)> = vec![("5", 5), ("10", 10), ("-5", -5), ("-10", -10)];
-
-        for input in inputs {
-            let evaluated = test_eval(input.0);
-            assert_integer_object(&evaluated, input.1)
         }
     }
 }
