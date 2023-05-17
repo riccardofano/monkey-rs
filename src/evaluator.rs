@@ -1,5 +1,5 @@
 use crate::ast::{Expression, Program, Statement};
-use crate::object::{Object, ObjectKind};
+use crate::object::Object;
 
 trait Eval {
     fn eval(&self) -> Option<Object>;
@@ -18,7 +18,7 @@ impl Eval for Program {
 impl Eval for Expression {
     fn eval(&self) -> Option<Object> {
         let obj = match self {
-            Expression::Integer(int) => Object::new(ObjectKind::Integer(*int)),
+            Expression::Integer(int) => Object::Integer(*int),
             _ => todo!(),
         };
 
@@ -45,18 +45,16 @@ mod tests {
         let mut parser = Parser::new(Lexer::new(input));
         let program = parser.parse_program();
 
-        program
-            .eval()
-            .unwrap_or_else(|| Object::new(ObjectKind::Null))
+        program.eval().unwrap_or(Object::Null)
     }
 
     fn test_integer_object(object: &Object, expected: usize) -> bool {
-        let ObjectKind::Integer(int) = object.kind else {
-            eprintln!("object is not an Integer. Got {:?}", object.kind);
+        let Object::Integer(int) = object else {
+            eprintln!("object is not an Integer. Got {:?}", object);
             return false;
         };
 
-        int == expected
+        int == &expected
     }
 
     #[test]
