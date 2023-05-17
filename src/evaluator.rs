@@ -1,5 +1,6 @@
 use crate::ast::{Expression, Program, Statement};
-use crate::object::Object;
+use crate::object::{Object, FALSE, TRUE};
+use crate::token::TokenKind;
 
 pub trait Eval {
     fn eval(&self) -> Option<Object>;
@@ -20,10 +21,32 @@ impl Eval for Expression {
         let obj = match self {
             Expression::Integer(int) => Object::Integer(*int),
             Expression::Boolean(bool) => bool.into(),
+            Expression::Prefix(op, value) => {
+                let Some(value) = value.eval() else {
+                    return None
+                };
+                eval_prefix_expression(op, value)
+            }
             _ => todo!(),
         };
 
         Some(obj)
+    }
+}
+
+fn eval_prefix_expression(operator: &TokenKind, value: Object) -> Object {
+    match operator {
+        TokenKind::Bang => eval_bang_operator(value),
+        _ => Object::Null,
+    }
+}
+
+fn eval_bang_operator(value: Object) -> Object {
+    match value {
+        Object::Boolean(true) => FALSE,
+        Object::Boolean(false) => TRUE,
+        Object::Null => TRUE,
+        _ => FALSE,
     }
 }
 
@@ -49,22 +72,20 @@ mod tests {
         program.eval().unwrap_or(Object::Null)
     }
 
-    fn test_integer_object(object: &Object, expected: usize) -> bool {
+    fn assert_integer_object(object: &Object, expected: usize) {
         let Object::Integer(int) = object else {
-            eprintln!("object is not an Integer. Got {:?}", object);
-            return false;
+            panic!("object is not an Integer. Got {:?}", object);
         };
 
-        int == &expected
+        assert_eq!(int, &expected);
     }
 
-    fn test_boolean_object(object: &Object, expected: bool) -> bool {
+    fn assert_boolean_object(object: &Object, expected: bool) {
         let Object::Boolean(bool) = object else {
-            eprintln!("object is not a Boolean. Got {:?}", object);
-            return false;
+            panic!("object is not a Boolean. Got {:?}", object);
         };
 
-        bool == &expected
+        assert_eq!(bool, &expected);
     }
 
     #[test]
@@ -73,7 +94,7 @@ mod tests {
 
         for input in inputs {
             let evaluated = test_eval(input.0);
-            assert!(test_integer_object(&evaluated, input.1));
+            assert_integer_object(&evaluated, input.1);
         }
     }
 
@@ -83,7 +104,24 @@ mod tests {
 
         for input in inputs {
             let evaluated = test_eval(input.0);
-            assert!(test_boolean_object(&evaluated, input.1));
+            assert_boolean_object(&evaluated, input.1);
+        }
+    }
+
+    #[test]
+    fn test_bang_operator() {
+        let inputs: Vec<(&str, bool)> = vec![
+            ("!true", false),
+            ("!false", true),
+            ("!5", false),
+            ("!!true", true),
+            ("!!false", false),
+            ("!!5", true),
+        ];
+
+        for input in inputs {
+            let evaluated = test_eval(input.0);
+            assert_boolean_object(&evaluated, input.1)
         }
     }
 }
