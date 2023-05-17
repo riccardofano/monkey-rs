@@ -1,6 +1,7 @@
 use std::fmt::Display;
 
-enum ObjectKind {
+#[derive(Debug)]
+pub enum ObjectKind {
     Integer(usize),
     Boolean(bool),
     Null,
@@ -27,6 +28,13 @@ impl Display for ObjectKind {
     }
 }
 
-struct Object {
-    kind: ObjectKind,
+#[derive(Debug)]
+pub struct Object {
+    pub kind: ObjectKind,
+}
+
+impl Object {
+    pub fn new(kind: ObjectKind) -> Self {
+        Self { kind }
+    }
 }
