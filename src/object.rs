@@ -1,5 +1,8 @@
 use std::fmt::Display;
 
+pub const TRUE: Object = Object::Boolean(true);
+pub const FALSE: Object = Object::Boolean(false);
+
 #[derive(Debug)]
 pub enum Object {
     Integer(usize),
@@ -25,5 +28,14 @@ impl Display for Object {
             Object::Null => "NULL",
         };
         write!(f, "{kind}")
+    }
+}
+
+impl From<&bool> for Object {
+    fn from(value: &bool) -> Self {
+        if *value {
+            return TRUE;
+        }
+        FALSE
     }
 }

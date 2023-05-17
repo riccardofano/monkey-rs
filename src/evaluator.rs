@@ -19,7 +19,7 @@ impl Eval for Expression {
     fn eval(&self) -> Option<Object> {
         let obj = match self {
             Expression::Integer(int) => Object::Integer(*int),
-            Expression::Boolean(bool) => Object::Boolean(*bool),
+            Expression::Boolean(bool) => bool.into(),
             _ => todo!(),
         };
 
