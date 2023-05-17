@@ -373,7 +373,7 @@ mod tests {
         }
     }
 
-    impl TestExpression for usize {
+    impl TestExpression for i64 {
         fn test_expression(&self, expression: &Expression) -> bool {
             let Expression::Integer(int) = expression else {
                 eprintln!("expression is not Integer(_). Got {:?}", expression);

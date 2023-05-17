@@ -40,7 +40,7 @@ impl Display for Statement {
 #[derive(Debug)]
 pub enum Expression {
     Identifier(Identifier),
-    Integer(usize),
+    Integer(i64),
     Boolean(bool),
 
     If(Box<Expression>, Box<Statement>, Option<Box<Statement>>),

@@ -18,7 +18,7 @@ impl Eval for Program {
 
 impl Eval for Expression {
     fn eval(&self) -> Object {
-        let obj = match self {
+        match self {
             Expression::Integer(int) => Object::Integer(*int),
             Expression::Boolean(bool) => bool.into(),
             Expression::Prefix(op, value) => {
@@ -26,15 +26,14 @@ impl Eval for Expression {
                 eval_prefix_expression(op, value)
             }
             _ => todo!(),
-        };
-
-        obj
+        }
     }
 }
 
 fn eval_prefix_expression(operator: &TokenKind, value: Object) -> Object {
     match operator {
         TokenKind::Bang => eval_bang_operator(value),
+        TokenKind::Minus => eval_minus_operator(value),
         _ => Object::Null,
     }
 }
@@ -46,6 +45,14 @@ fn eval_bang_operator(value: Object) -> Object {
         Object::Null => TRUE,
         _ => FALSE,
     }
+}
+
+fn eval_minus_operator(value: Object) -> Object {
+    let Object::Integer(int) = value else {
+        return Object::Null;
+    };
+
+    Object::Integer(-int)
 }
 
 impl Eval for Statement {
@@ -70,7 +77,7 @@ mod tests {
         program.eval()
     }
 
-    fn assert_integer_object(object: &Object, expected: usize) {
+    fn assert_integer_object(object: &Object, expected: i64) {
         let Object::Integer(int) = object else {
             panic!("object is not an Integer. Got {:?}", object);
         };
@@ -88,7 +95,7 @@ mod tests {
 
     #[test]
     fn test_eval_integer_expressions() {
-        let inputs: Vec<(&str, usize)> = vec![("5", 5), ("10", 10)];
+        let inputs: Vec<(&str, i64)> = vec![("5", 5), ("10", 10)];
 
         for input in inputs {
             let evaluated = test_eval(input.0);
@@ -120,6 +127,16 @@ mod tests {
         for input in inputs {
             let evaluated = test_eval(input.0);
             assert_boolean_object(&evaluated, input.1)
+        }
+    }
+
+    #[test]
+    fn test_minus_operator() {
+        let inputs: Vec<(&str, i64)> = vec![("5", 5), ("10", 10), ("-5", -5), ("-10", -10)];
+
+        for input in inputs {
+            let evaluated = test_eval(input.0);
+            assert_integer_object(&evaluated, input.1)
         }
     }
 }

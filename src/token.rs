@@ -6,7 +6,7 @@ pub enum TokenKind {
     Eof,
 
     Ident(String),
-    Int(usize),
+    Int(i64),
 
     Assign,
     Plus,

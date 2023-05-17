@@ -47,7 +47,7 @@ impl Lexer {
         &self.input[start..self.position]
     }
 
-    fn read_number(&mut self) -> usize {
+    fn read_number(&mut self) -> i64 {
         let start = self.position;
         while is_number(self.character) {
             self.read_char();

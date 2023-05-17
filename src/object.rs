@@ -5,7 +5,7 @@ pub const FALSE: Object = Object::Boolean(false);
 
 #[derive(Debug)]
 pub enum Object {
-    Integer(usize),
+    Integer(i64),
     Boolean(bool),
     Null,
 }
