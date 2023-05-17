@@ -19,6 +19,7 @@ impl Eval for Expression {
     fn eval(&self) -> Option<Object> {
         let obj = match self {
             Expression::Integer(int) => Object::Integer(*int),
+            Expression::Boolean(bool) => Object::Boolean(*bool),
             _ => todo!(),
         };
 
@@ -57,6 +58,15 @@ mod tests {
         int == &expected
     }
 
+    fn test_boolean_object(object: &Object, expected: bool) -> bool {
+        let Object::Boolean(bool) = object else {
+            eprintln!("object is not a Boolean. Got {:?}", object);
+            return false;
+        };
+
+        bool == &expected
+    }
+
     #[test]
     fn test_eval_integer_expressions() {
         let inputs: Vec<(&str, usize)> = vec![("5", 5), ("10", 10)];
@@ -64,6 +74,16 @@ mod tests {
         for input in inputs {
             let evaluated = test_eval(input.0);
             assert!(test_integer_object(&evaluated, input.1));
+        }
+    }
+
+    #[test]
+    fn test_eval_boolean_expression() {
+        let inputs: Vec<(&str, bool)> = vec![("true", true), ("false", false)];
+
+        for input in inputs {
+            let evaluated = test_eval(input.0);
+            assert!(test_boolean_object(&evaluated, input.1));
         }
     }
 }
