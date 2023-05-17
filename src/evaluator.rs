@@ -3,12 +3,12 @@ use crate::object::{Object, FALSE, TRUE};
 use crate::token::TokenKind;
 
 pub trait Eval {
-    fn eval(&self) -> Option<Object>;
+    fn eval(&self) -> Object;
 }
 
 impl Eval for Program {
-    fn eval(&self) -> Option<Object> {
-        let mut result = None;
+    fn eval(&self) -> Object {
+        let mut result = Object::Null;
         for statement in &self.statements {
             result = statement.eval()
         }
@@ -17,20 +17,18 @@ impl Eval for Program {
 }
 
 impl Eval for Expression {
-    fn eval(&self) -> Option<Object> {
+    fn eval(&self) -> Object {
         let obj = match self {
             Expression::Integer(int) => Object::Integer(*int),
             Expression::Boolean(bool) => bool.into(),
             Expression::Prefix(op, value) => {
-                let Some(value) = value.eval() else {
-                    return None
-                };
+                let value = value.eval();
                 eval_prefix_expression(op, value)
             }
             _ => todo!(),
         };
 
-        Some(obj)
+        obj
     }
 }
 
@@ -51,7 +49,7 @@ fn eval_bang_operator(value: Object) -> Object {
 }
 
 impl Eval for Statement {
-    fn eval(&self) -> Option<Object> {
+    fn eval(&self) -> Object {
         match self {
             Statement::Expression(expr) => expr.eval(),
             _ => todo!(),
@@ -69,7 +67,7 @@ mod tests {
         let mut parser = Parser::new(Lexer::new(input));
         let program = parser.parse_program();
 
-        program.eval().unwrap_or(Object::Null)
+        program.eval()
     }
 
     fn assert_integer_object(object: &Object, expected: usize) {
