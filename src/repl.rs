@@ -1,6 +1,6 @@
 use std::io::{self, BufRead, Write};
 
-use crate::{lexer::Lexer, parser::Parser};
+use crate::{evaluator::Eval, lexer::Lexer, parser::Parser};
 
 const PROMPT: &str = ">> ";
 
@@ -22,8 +22,13 @@ pub fn start(mut input: impl BufRead) -> io::Result<()> {
         let errors = parser.errors();
         if !errors.is_empty() {
             print_parser_errors(errors);
+            continue;
         }
-        println!("{program}");
+
+        let evaluated = program.eval();
+        if let Some(result) = evaluated {
+            println!("{}", result.inspect())
+        }
 
         buf.clear();
     }

@@ -1,7 +1,7 @@
 use crate::ast::{Expression, Program, Statement};
 use crate::object::Object;
 
-trait Eval {
+pub trait Eval {
     fn eval(&self) -> Option<Object>;
 }
 
