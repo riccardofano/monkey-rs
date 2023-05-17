@@ -20,7 +20,7 @@ impl Eval for Expression {
     fn eval(&self) -> Object {
         match self {
             Expression::Integer(int) => Object::Integer(*int),
-            Expression::Boolean(bool) => bool.into(),
+            Expression::Boolean(bool) => (*bool).into(),
             Expression::Prefix(op, value) => {
                 let value = value.eval();
                 eval_prefix_expression(op, value)
@@ -68,14 +68,17 @@ fn eval_infix_expression(left: Object, operator: &TokenKind, right: Object) -> O
 }
 
 fn eval_integer_infix_expression(left: i64, operator: &TokenKind, right: i64) -> Object {
-    let result = match operator {
-        TokenKind::Plus => left + right,
-        TokenKind::Minus => left - right,
-        TokenKind::Asterisk => left * right,
-        TokenKind::Slash => left / right,
-        _ => return Object::Null,
-    };
-    Object::Integer(result)
+    match operator {
+        TokenKind::Plus => Object::Integer(left + right),
+        TokenKind::Minus => Object::Integer(left - right),
+        TokenKind::Asterisk => Object::Integer(left * right),
+        TokenKind::Slash => Object::Integer(left / right),
+        TokenKind::LessThan => (left < right).into(),
+        TokenKind::GreaterThan => (left > right).into(),
+        TokenKind::Equal => (left == right).into(),
+        TokenKind::NotEqual => (left != right).into(),
+        _ => Object::Null,
+    }
 }
 
 impl Eval for Statement {
@@ -144,7 +147,18 @@ mod tests {
 
     #[test]
     fn test_eval_boolean_expression() {
-        let inputs: Vec<(&str, bool)> = vec![("true", true), ("false", false)];
+        let inputs: Vec<(&str, bool)> = vec![
+            ("true", true),
+            ("false", false),
+            ("1 < 2", true),
+            ("1 > 2", false),
+            ("1 < 1", false),
+            ("1 > 1", false),
+            ("1 == 1", true),
+            ("1 != 1", false),
+            ("1 == 2", false),
+            ("1 != 2", true),
+        ];
 
         for input in inputs {
             let evaluated = test_eval(input.0);

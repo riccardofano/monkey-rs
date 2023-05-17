@@ -31,9 +31,9 @@ impl Display for Object {
     }
 }
 
-impl From<&bool> for Object {
-    fn from(value: &bool) -> Self {
-        if *value {
+impl From<bool> for Object {
+    fn from(value: bool) -> Self {
+        if value {
             return TRUE;
         }
         FALSE
