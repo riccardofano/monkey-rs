@@ -26,9 +26,7 @@ pub fn start(mut input: impl BufRead) -> io::Result<()> {
         }
 
         let evaluated = program.eval();
-        if let Some(result) = evaluated {
-            println!("{}", result.inspect())
-        }
+        println!("{}", evaluated.inspect());
 
         buf.clear();
     }
