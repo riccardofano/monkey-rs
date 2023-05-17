@@ -60,8 +60,11 @@ fn eval_minus_operator(value: Object) -> Object {
 
 fn eval_infix_expression(left: Object, operator: &TokenKind, right: Object) -> Object {
     match (left, right) {
-        (Object::Integer(left_int), Object::Integer(right_int)) => {
-            eval_integer_infix_expression(left_int, operator, right_int)
+        (Object::Integer(left), Object::Integer(right)) => {
+            eval_integer_infix_expression(left, operator, right)
+        }
+        (Object::Boolean(left), Object::Boolean(right)) => {
+            eval_boolean_infix_expression(left, operator, right)
         }
         (_, _) => Object::Null,
     }
@@ -75,6 +78,14 @@ fn eval_integer_infix_expression(left: i64, operator: &TokenKind, right: i64) ->
         TokenKind::Slash => Object::Integer(left / right),
         TokenKind::LessThan => (left < right).into(),
         TokenKind::GreaterThan => (left > right).into(),
+        TokenKind::Equal => (left == right).into(),
+        TokenKind::NotEqual => (left != right).into(),
+        _ => Object::Null,
+    }
+}
+
+fn eval_boolean_infix_expression(left: bool, operator: &TokenKind, right: bool) -> Object {
+    match operator {
         TokenKind::Equal => (left == right).into(),
         TokenKind::NotEqual => (left != right).into(),
         _ => Object::Null,
@@ -158,6 +169,15 @@ mod tests {
             ("1 != 1", false),
             ("1 == 2", false),
             ("1 != 2", true),
+            ("true == true", true),
+            ("false == false", true),
+            ("true == false", false),
+            ("true != false", true),
+            ("false != true", true),
+            ("(1 < 2) == true", true),
+            ("(1 < 2) == false", false),
+            ("(1 > 2) == true", false),
+            ("(1 > 2) == false", true),
         ];
 
         for input in inputs {
