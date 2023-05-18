@@ -1,11 +1,16 @@
-use std::io::{self, BufRead, Write};
+use std::{
+    cell::RefCell,
+    io::{self, BufRead, Write},
+    rc::Rc,
+};
 
-use crate::{evaluator::Eval, lexer::Lexer, parser::Parser};
+use crate::{evaluator::Eval, lexer::Lexer, object::Environment, parser::Parser};
 
 const PROMPT: &str = ">> ";
 
 pub fn start(mut input: impl BufRead) -> io::Result<()> {
     let mut buf = String::new();
+    let env = Rc::new(RefCell::new(Environment::new()));
 
     loop {
         print!("{PROMPT}");
@@ -25,7 +30,7 @@ pub fn start(mut input: impl BufRead) -> io::Result<()> {
             continue;
         }
 
-        let evaluated = program.eval();
+        let evaluated = program.eval(env.clone());
         println!("{}", evaluated.inspect());
 
         buf.clear();

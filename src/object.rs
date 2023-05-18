@@ -1,9 +1,11 @@
-use std::fmt::Display;
+use std::{collections::HashMap, fmt::Display};
+
+use crate::ast::Identifier;
 
 pub const TRUE: Object = Object::Boolean(true);
 pub const FALSE: Object = Object::Boolean(false);
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Object {
     Error(String),
     ReturnValue(Box<Object>),
@@ -51,5 +53,25 @@ impl From<bool> for Object {
             return TRUE;
         }
         FALSE
+    }
+}
+
+pub struct Environment {
+    store: HashMap<Identifier, Object>,
+}
+
+impl Environment {
+    pub fn new() -> Self {
+        Self {
+            store: HashMap::new(),
+        }
+    }
+
+    pub fn get(&self, name: &Identifier) -> Option<&Object> {
+        self.store.get(name)
+    }
+
+    pub fn set(&mut self, name: Identifier, value: Object) {
+        self.store.insert(name, value);
     }
 }

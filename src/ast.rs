@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use crate::token::TokenKind;
 
-#[derive(Debug)]
+#[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct Identifier(pub String);
 
 impl Display for Identifier {

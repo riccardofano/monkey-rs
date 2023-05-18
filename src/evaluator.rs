@@ -1,16 +1,21 @@
-use crate::ast::{Expression, Program, Statement};
-use crate::object::{Object, FALSE, TRUE};
+use std::cell::RefCell;
+use std::rc::Rc;
+
+use crate::ast::{Expression, Identifier, Program, Statement};
+use crate::object::{Environment, Object, FALSE, TRUE};
 use crate::token::TokenKind;
 
+type Env = Rc<RefCell<Environment>>;
+
 pub trait Eval {
-    fn eval(&self) -> Object;
+    fn eval(&self, env: Env) -> Object;
 }
 
 impl Eval for Program {
-    fn eval(&self) -> Object {
+    fn eval(&self, env: Env) -> Object {
         let mut result = Object::Null;
         for statement in &self.statements {
-            result = statement.eval();
+            result = statement.eval(env.clone());
 
             match result {
                 Object::ReturnValue(value) => return *value,
@@ -23,46 +28,54 @@ impl Eval for Program {
 }
 
 impl Eval for Statement {
-    fn eval(&self) -> Object {
+    fn eval(&self, env: Env) -> Object {
         match self {
-            Statement::Expression(expr) => expr.eval(),
-            Statement::Block(statements) => eval_block_statement(statements),
+            Statement::Expression(expr) => expr.eval(env),
+            Statement::Block(statements) => eval_block_statement(statements, env),
             Statement::Return(expr) => {
-                let value = expr.eval();
+                let value = expr.eval(env);
                 if value.is_error() {
                     return value;
                 }
                 Object::ReturnValue(Box::new(value))
             }
-            _ => todo!(),
+            Statement::Let(ident, expr) => {
+                let value = expr.eval(env.clone());
+                if value.is_error() {
+                    return value;
+                }
+                env.borrow_mut().set(ident.clone(), value);
+                Object::Null
+            }
         }
     }
 }
 
 impl Eval for Expression {
-    fn eval(&self) -> Object {
+    fn eval(&self, env: Env) -> Object {
         match self {
             Expression::Integer(int) => Object::Integer(*int),
             Expression::Boolean(bool) => (*bool).into(),
+            Expression::Identifier(ident) => eval_identifier(ident, env),
             Expression::Prefix(op, value) => {
-                let value = value.eval();
+                let value = value.eval(env);
                 if value.is_error() {
                     return value;
                 }
                 eval_prefix_expression(op, value)
             }
             Expression::Infix(left, op, right) => {
-                let left = left.eval();
+                let left = left.eval(env.clone());
                 if left.is_error() {
                     return left;
                 }
-                let right = right.eval();
+                let right = right.eval(env);
                 if right.is_error() {
                     return right;
                 }
                 eval_infix_expression(left, op, right)
             }
-            Expression::If(cond, cons, alt) => eval_if_expression(cond, cons, alt),
+            Expression::If(cond, cons, alt) => eval_if_expression(cond, cons, alt, env),
             _ => todo!(),
         }
     }
@@ -72,10 +85,10 @@ fn new_error(reason: String) -> Object {
     Object::Error(reason)
 }
 
-fn eval_block_statement(statements: &[Statement]) -> Object {
+fn eval_block_statement(statements: &[Statement], env: Env) -> Object {
     let mut result = Object::Null;
     for statement in statements {
-        result = statement.eval();
+        result = statement.eval(env.clone());
         if matches!(result, Object::ReturnValue(_) | Object::Error(_)) {
             return result;
         }
@@ -158,19 +171,27 @@ fn eval_if_expression(
     condition: &Expression,
     consequence: &Statement,
     alternative: &Option<Box<Statement>>,
+    env: Env,
 ) -> Object {
-    let condition = condition.eval();
+    let condition = condition.eval(env.clone());
     if condition.is_error() {
         return condition;
     }
 
     if condition.is_truthy() {
-        return consequence.eval();
+        return consequence.eval(env);
     };
 
     match alternative {
-        Some(alternative) => alternative.eval(),
+        Some(alternative) => alternative.eval(env),
         None => Object::Null,
+    }
+}
+
+fn eval_identifier(identifier: &Identifier, env: Env) -> Object {
+    match env.borrow().get(identifier) {
+        Some(value) => value.clone(),
+        None => new_error(format!("identifier not found: {identifier}")),
     }
 }
 
@@ -183,8 +204,9 @@ mod tests {
     fn test_eval(input: &str) -> Object {
         let mut parser = Parser::new(Lexer::new(input));
         let program = parser.parse_program();
+        let env = Rc::new(RefCell::new(Environment::new()));
 
-        program.eval()
+        program.eval(env)
     }
 
     trait TestObject {
@@ -341,6 +363,7 @@ mod tests {
                 " if (10 > 1) { if (10 > 1) { return true + false; } return 1; }",
                 "unknown operator: BOOLEAN + BOOLEAN",
             ),
+            ("foobar", "identifier not found: foobar"),
         ];
 
         for input in inputs {
@@ -350,6 +373,21 @@ mod tests {
             };
 
             assert_eq!(&error_message, input.1);
+        }
+    }
+
+    #[test]
+    fn test_let_statements() {
+        let inputs: Vec<(&str, i64)> = vec![
+            ("let a = 5; a;", 5),
+            ("let a = 5 * 5; a;", 25),
+            ("let a = 5; let b = a; b;", 5),
+            ("let a = 5; let b = a; let c = a + b + 5; c;", 15),
+        ];
+
+        for input in inputs {
+            let evaluated = test_eval(input.0);
+            input.1.assert_object(&evaluated);
         }
     }
 }
