@@ -18,6 +18,10 @@ impl Object {
             Object::Null => "null".to_string(),
         }
     }
+
+    pub fn is_truthy(&self) -> bool {
+        !matches!(self, Object::Boolean(false) | Object::Null)
+    }
 }
 
 impl Display for Object {

@@ -8,11 +8,17 @@ pub trait Eval {
 
 impl Eval for Program {
     fn eval(&self) -> Object {
-        let mut result = Object::Null;
-        for statement in &self.statements {
-            result = statement.eval()
+        eval_statements(&self.statements)
+    }
+}
+
+impl Eval for Statement {
+    fn eval(&self) -> Object {
+        match self {
+            Statement::Expression(expr) => expr.eval(),
+            Statement::Block(statements) => eval_statements(statements),
+            _ => todo!(),
         }
-        result
     }
 }
 
@@ -28,9 +34,34 @@ impl Eval for Expression {
             Expression::Infix(left, op, right) => {
                 eval_infix_expression(left.eval(), op, right.eval())
             }
+            Expression::If(cond, cons, alt) => eval_if_expression(cond, cons, alt),
             _ => todo!(),
         }
     }
+}
+
+fn eval_if_expression(
+    condition: &Expression,
+    consequence: &Statement,
+    alternative: &Option<Box<Statement>>,
+) -> Object {
+    let condition = condition.eval();
+    if condition.is_truthy() {
+        return consequence.eval();
+    };
+
+    match alternative {
+        Some(alternative) => alternative.eval(),
+        None => Object::Null,
+    }
+}
+
+fn eval_statements(statements: &Vec<Statement>) -> Object {
+    let mut result = Object::Null;
+    for statement in statements {
+        result = statement.eval()
+    }
+    result
 }
 
 fn eval_prefix_expression(operator: &TokenKind, value: Object) -> Object {
@@ -92,15 +123,6 @@ fn eval_boolean_infix_expression(left: bool, operator: &TokenKind, right: bool) 
     }
 }
 
-impl Eval for Statement {
-    fn eval(&self) -> Object {
-        match self {
-            Statement::Expression(expr) => expr.eval(),
-            _ => todo!(),
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use crate::{lexer::Lexer, parser::Parser};
@@ -114,20 +136,35 @@ mod tests {
         program.eval()
     }
 
-    fn assert_integer_object(object: &Object, expected: i64) {
-        let Object::Integer(int) = object else {
-            panic!("object is not an Integer. Got {:?}", object);
-        };
-
-        assert_eq!(int, &expected);
+    trait TestObject {
+        fn assert_object(&self, object: &Object);
     }
 
-    fn assert_boolean_object(object: &Object, expected: bool) {
-        let Object::Boolean(bool) = object else {
-            panic!("object is not a Boolean. Got {:?}", object);
-        };
+    impl TestObject for i64 {
+        fn assert_object(&self, object: &Object) {
+            let Object::Integer(int) = object else {
+                panic!("object is not an Integer. Got {:?}", object);
+            };
+            assert_eq!(int, self);
+        }
+    }
 
-        assert_eq!(bool, &expected);
+    impl TestObject for bool {
+        fn assert_object(&self, object: &Object) {
+            let Object::Boolean(bool) = object else {
+                panic!("object is not a Boolean. Got {:?}", object);
+            };
+            assert_eq!(bool, self);
+        }
+    }
+
+    // NOTE: any option value let it be Some(5) or None just checks if the object is null
+    impl TestObject for Option<i64> {
+        fn assert_object(&self, object: &Object) {
+            let Object::Null = object else {
+                panic!("object is not Null. Got {:?}", object);
+            };
+        }
     }
 
     #[test]
@@ -152,7 +189,7 @@ mod tests {
 
         for input in inputs {
             let evaluated = test_eval(input.0);
-            assert_integer_object(&evaluated, input.1);
+            input.1.assert_object(&evaluated);
         }
     }
 
@@ -182,7 +219,7 @@ mod tests {
 
         for input in inputs {
             let evaluated = test_eval(input.0);
-            assert_boolean_object(&evaluated, input.1);
+            input.1.assert_object(&evaluated);
         }
     }
 
@@ -199,7 +236,25 @@ mod tests {
 
         for input in inputs {
             let evaluated = test_eval(input.0);
-            assert_boolean_object(&evaluated, input.1)
+            input.1.assert_object(&evaluated);
+        }
+    }
+
+    #[test]
+    fn test_if_else_expressions() {
+        let inputs: Vec<(&str, &dyn TestObject)> = vec![
+            ("if (true) { 10 }", &10),
+            ("if (false) { 10 }", &None),
+            ("if (1) { 10 }", &10),
+            ("if (1 < 2) { 10 }", &10),
+            ("if (1 > 2) { 10 }", &None),
+            ("if (1 > 2) { 10 } else { 20 }", &20),
+            ("if (1 < 2) { 10 } else { 20 }", &10),
+        ];
+
+        for input in inputs {
+            let evaluated = test_eval(input.0);
+            input.1.assert_object(&evaluated);
         }
     }
 }
