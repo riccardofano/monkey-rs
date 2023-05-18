@@ -17,6 +17,10 @@ impl Eval for Statement {
         match self {
             Statement::Expression(expr) => expr.eval(),
             Statement::Block(statements) => eval_statements(statements),
+            Statement::Return(expr) => {
+                let value = expr.eval();
+                Object::ReturnValue(Box::new(value))
+            }
             _ => todo!(),
         }
     }
@@ -40,26 +44,13 @@ impl Eval for Expression {
     }
 }
 
-fn eval_if_expression(
-    condition: &Expression,
-    consequence: &Statement,
-    alternative: &Option<Box<Statement>>,
-) -> Object {
-    let condition = condition.eval();
-    if condition.is_truthy() {
-        return consequence.eval();
-    };
-
-    match alternative {
-        Some(alternative) => alternative.eval(),
-        None => Object::Null,
-    }
-}
-
 fn eval_statements(statements: &Vec<Statement>) -> Object {
     let mut result = Object::Null;
     for statement in statements {
-        result = statement.eval()
+        result = statement.eval();
+        if let Object::ReturnValue(value) = result {
+            return *value;
+        }
     }
     result
 }
@@ -120,6 +111,22 @@ fn eval_boolean_infix_expression(left: bool, operator: &TokenKind, right: bool) 
         TokenKind::Equal => (left == right).into(),
         TokenKind::NotEqual => (left != right).into(),
         _ => Object::Null,
+    }
+}
+
+fn eval_if_expression(
+    condition: &Expression,
+    consequence: &Statement,
+    alternative: &Option<Box<Statement>>,
+) -> Object {
+    let condition = condition.eval();
+    if condition.is_truthy() {
+        return consequence.eval();
+    };
+
+    match alternative {
+        Some(alternative) => alternative.eval(),
+        None => Object::Null,
     }
 }
 
@@ -250,6 +257,21 @@ mod tests {
             ("if (1 > 2) { 10 }", &None),
             ("if (1 > 2) { 10 } else { 20 }", &20),
             ("if (1 < 2) { 10 } else { 20 }", &10),
+        ];
+
+        for input in inputs {
+            let evaluated = test_eval(input.0);
+            input.1.assert_object(&evaluated);
+        }
+    }
+
+    #[test]
+    fn test_return_statements() {
+        let inputs: Vec<(&str, i64)> = vec![
+            ("return 10;", 10),
+            ("return 10; 9;", 10),
+            ("return 2 * 5; 9;", 10),
+            ("9; return 2 * 5; 9;", 10),
         ];
 
         for input in inputs {

@@ -5,6 +5,7 @@ pub const FALSE: Object = Object::Boolean(false);
 
 #[derive(Debug)]
 pub enum Object {
+    ReturnValue(Box<Object>),
     Integer(i64),
     Boolean(bool),
     Null,
@@ -13,6 +14,7 @@ pub enum Object {
 impl Object {
     pub fn inspect(&self) -> String {
         match self {
+            Object::ReturnValue(value) => value.to_string(),
             Object::Integer(int) => int.to_string(),
             Object::Boolean(bool) => bool.to_string(),
             Object::Null => "null".to_string(),
@@ -27,6 +29,7 @@ impl Object {
 impl Display for Object {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let kind = match self {
+            Object::ReturnValue(_) => "RETURN_VALUE",
             Object::Integer(_) => "INTEGER",
             Object::Boolean(_) => "BOOLEAN",
             Object::Null => "NULL",
