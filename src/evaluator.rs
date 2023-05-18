@@ -8,7 +8,14 @@ pub trait Eval {
 
 impl Eval for Program {
     fn eval(&self) -> Object {
-        eval_statements(&self.statements)
+        let mut result = Object::Null;
+        for statement in &self.statements {
+            result = statement.eval();
+            if let Object::ReturnValue(value) = result {
+                return *value;
+            }
+        }
+        result
     }
 }
 
@@ -16,11 +23,8 @@ impl Eval for Statement {
     fn eval(&self) -> Object {
         match self {
             Statement::Expression(expr) => expr.eval(),
-            Statement::Block(statements) => eval_statements(statements),
-            Statement::Return(expr) => {
-                let value = expr.eval();
-                Object::ReturnValue(Box::new(value))
-            }
+            Statement::Block(_) => eval_block_statement(self),
+            Statement::Return(expr) => Object::ReturnValue(Box::new(expr.eval())),
             _ => todo!(),
         }
     }
@@ -44,12 +48,16 @@ impl Eval for Expression {
     }
 }
 
-fn eval_statements(statements: &Vec<Statement>) -> Object {
+fn eval_block_statement(statement: &Statement) -> Object {
+    let Statement::Block(statements) = statement else {
+        return Object::Null
+    };
+
     let mut result = Object::Null;
     for statement in statements {
         result = statement.eval();
-        if let Object::ReturnValue(value) = result {
-            return *value;
+        if matches!(result, Object::ReturnValue(_)) {
+            return result;
         }
     }
     result
@@ -272,6 +280,7 @@ mod tests {
             ("return 10; 9;", 10),
             ("return 2 * 5; 9;", 10),
             ("9; return 2 * 5; 9;", 10),
+            ("if (10 > 1) { if (10 > 1) { return 10; } return 1; }", 10),
         ];
 
         for input in inputs {
