@@ -466,4 +466,20 @@ mod tests {
             input.1.assert_object(&test_eval(input.0));
         }
     }
+
+    #[test]
+    fn test_closures() {
+        let input: (&str, i64) = (
+            r#"
+let newAdder = fn(x) {
+  fn(y) { x + y };
+};
+
+let addTwo = newAdder(2);
+addTwo(2);"#,
+            4,
+        );
+
+        input.1.assert_object(&test_eval(input.0));
+    }
 }
