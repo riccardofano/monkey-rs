@@ -11,6 +11,7 @@ pub enum Object {
     Error(String),
     Boolean(bool),
     Integer(i64),
+    String(String),
     ReturnValue(Box<Object>),
     Function(Vec<Expression>, Statement, Env),
 }
@@ -22,6 +23,7 @@ impl Object {
             Object::Error(message) => format!("ERROR: {message}"),
             Object::Boolean(bool) => bool.to_string(),
             Object::Integer(int) => int.to_string(),
+            Object::String(string) => string.clone(),
             Object::ReturnValue(value) => value.to_string(),
             Object::Function(params, body, _) => {
                 let params = params
@@ -50,6 +52,7 @@ impl Display for Object {
             Object::Error(_) => "ERROR",
             Object::Boolean(_) => "BOOLEAN",
             Object::Integer(_) => "INTEGER",
+            Object::String(_) => "STRING",
             Object::ReturnValue(_) => "RETURN_VALUE",
             Object::Function(_, _, _) => "FUNCTION",
         };

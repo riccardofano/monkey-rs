@@ -50,6 +50,7 @@ impl Eval for Expression {
     fn eval(&self, env: Env) -> Object {
         match self {
             Expression::Integer(int) => Object::Integer(*int),
+            Expression::String(string) => Object::String(string.clone()),
             Expression::Boolean(bool) => (*bool).into(),
             Expression::Identifier(ident) => eval_identifier(ident, env),
             Expression::If(cond, cons, alt) => eval_if_expression(cond, cons, alt, env),
@@ -85,7 +86,6 @@ impl Eval for Expression {
                     Ok(args) => apply_function(function, &args),
                 }
             }
-            _ => todo!(),
         }
     }
 }
@@ -482,5 +482,17 @@ addTwo(2);"#,
         );
 
         input.1.assert_object(&test_eval(input.0));
+    }
+
+    #[test]
+    fn parse_string_literal() {
+        let input = "\"Hello World!\"";
+
+        let evaluated = test_eval(input);
+        let Object::String(string) = evaluated else {
+            panic!("Expected String Object. Got {:?}", evaluated);
+        };
+
+        assert_eq!(string, "Hello World!")
     }
 }
