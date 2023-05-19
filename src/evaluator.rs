@@ -5,7 +5,7 @@ use crate::ast::{Expression, Identifier, Program, Statement};
 use crate::object::{Environment, Object, FALSE, TRUE};
 use crate::token::TokenKind;
 
-type Env = Rc<RefCell<Environment>>;
+pub type Env = Rc<RefCell<Environment>>;
 
 pub trait Eval {
     fn eval(&self, env: Env) -> Object;
@@ -57,6 +57,7 @@ impl Eval for Expression {
             Expression::Integer(int) => Object::Integer(*int),
             Expression::Boolean(bool) => (*bool).into(),
             Expression::Identifier(ident) => eval_identifier(ident, env),
+            Expression::If(cond, cons, alt) => eval_if_expression(cond, cons, alt, env),
             Expression::Prefix(op, value) => {
                 let value = value.eval(env);
                 if value.is_error() {
@@ -75,7 +76,9 @@ impl Eval for Expression {
                 }
                 eval_infix_expression(left, op, right)
             }
-            Expression::If(cond, cons, alt) => eval_if_expression(cond, cons, alt, env),
+            Expression::Function(params, body) => {
+                Object::Function(params.clone(), *body.clone(), env)
+            }
             _ => todo!(),
         }
     }
@@ -389,5 +392,22 @@ mod tests {
             let evaluated = test_eval(input.0);
             input.1.assert_object(&evaluated);
         }
+    }
+
+    #[test]
+    fn test_function_object() {
+        let input = "fn(x) { x + 2; };";
+        let evaluated = test_eval(input);
+
+        let Object::Function(params, body, _env) = evaluated else {
+            panic!("Expected Function Object. Got {:?}", evaluated);
+        };
+
+        if params.len() != 1 {
+            panic!("Function has wrong parameters. Got {:?}", params);
+        }
+
+        assert_eq!(&params[0].to_string(), "x", "{:?}", params);
+        assert_eq!(&body.to_string(), "(x + 2)", "{:?}", body);
     }
 }

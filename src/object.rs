@@ -1,27 +1,39 @@
 use std::{collections::HashMap, fmt::Display};
 
-use crate::ast::Identifier;
+use crate::{
+    ast::{Expression, Identifier, Statement},
+    evaluator::Env,
+};
 
 pub const TRUE: Object = Object::Boolean(true);
 pub const FALSE: Object = Object::Boolean(false);
 
 #[derive(Debug, Clone)]
 pub enum Object {
-    Error(String),
-    ReturnValue(Box<Object>),
-    Integer(i64),
-    Boolean(bool),
     Null,
+    Error(String),
+    Boolean(bool),
+    Integer(i64),
+    ReturnValue(Box<Object>),
+    Function(Vec<Expression>, Statement, Env),
 }
 
 impl Object {
     pub fn inspect(&self) -> String {
         match self {
-            Object::Error(message) => format!("ERROR: {message}"),
-            Object::ReturnValue(value) => value.to_string(),
-            Object::Integer(int) => int.to_string(),
-            Object::Boolean(bool) => bool.to_string(),
             Object::Null => "null".to_string(),
+            Object::Error(message) => format!("ERROR: {message}"),
+            Object::Boolean(bool) => bool.to_string(),
+            Object::Integer(int) => int.to_string(),
+            Object::ReturnValue(value) => value.to_string(),
+            Object::Function(params, body, _) => {
+                let params = params
+                    .iter()
+                    .map(|p| p.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                format!("fn({params}) {{\n{body}\n}}")
+            }
         }
     }
 
@@ -37,11 +49,12 @@ impl Object {
 impl Display for Object {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let kind = match self {
-            Object::Error(_) => "ERROR",
-            Object::ReturnValue(_) => "RETURN_VALUE",
-            Object::Integer(_) => "INTEGER",
-            Object::Boolean(_) => "BOOLEAN",
             Object::Null => "NULL",
+            Object::Error(_) => "ERROR",
+            Object::Boolean(_) => "BOOLEAN",
+            Object::Integer(_) => "INTEGER",
+            Object::ReturnValue(_) => "RETURN_VALUE",
+            Object::Function(_, _, _) => "FUNCTION",
         };
         write!(f, "{kind}")
     }
@@ -56,6 +69,7 @@ impl From<bool> for Object {
     }
 }
 
+#[derive(Debug)]
 pub struct Environment {
     store: HashMap<Identifier, Object>,
 }
