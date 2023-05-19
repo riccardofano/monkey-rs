@@ -1,6 +1,5 @@
 use crate::token::Token;
 use crate::token::TokenKind;
-use crate::token::TokenKind::*;
 
 #[derive(Debug)]
 pub struct Lexer {
@@ -60,34 +59,45 @@ impl Lexer {
         self.skip_whitespace();
 
         let token = match self.character {
-            b'+' => Token::new(Plus),
-            b'-' => Token::new(Minus),
-            b'*' => Token::new(Asterisk),
-            b'/' => Token::new(Slash),
-            b'<' => Token::new(LessThan),
-            b'>' => Token::new(GreaterThan),
-            b',' => Token::new(Comma),
-            b';' => Token::new(Semicolon),
-            b'(' => Token::new(Lparen),
-            b')' => Token::new(Rparen),
-            b'{' => Token::new(Lbrace),
-            b'}' => Token::new(Rbrace),
-            0 => Token::new(Eof),
+            b'+' => Token::new(TokenKind::Plus),
+            b'-' => Token::new(TokenKind::Minus),
+            b'*' => Token::new(TokenKind::Asterisk),
+            b'/' => Token::new(TokenKind::Slash),
+            b'<' => Token::new(TokenKind::LessThan),
+            b'>' => Token::new(TokenKind::GreaterThan),
+            b',' => Token::new(TokenKind::Comma),
+            b';' => Token::new(TokenKind::Semicolon),
+            b'(' => Token::new(TokenKind::Lparen),
+            b')' => Token::new(TokenKind::Rparen),
+            b'{' => Token::new(TokenKind::Lbrace),
+            b'}' => Token::new(TokenKind::Rbrace),
+            0 => Token::new(TokenKind::Eof),
             b'=' => {
                 if self.peek_char() == b'=' {
                     self.read_char();
-                    Token::new(Equal)
+                    Token::new(TokenKind::Equal)
                 } else {
-                    Token::new(Assign)
+                    Token::new(TokenKind::Assign)
                 }
             }
             b'!' => {
                 if self.peek_char() == b'=' {
                     self.read_char();
-                    Token::new(NotEqual)
+                    Token::new(TokenKind::NotEqual)
                 } else {
-                    Token::new(Bang)
+                    Token::new(TokenKind::Bang)
                 }
+            }
+            b'"' => {
+                let position = self.position + 1;
+                loop {
+                    self.read_char();
+                    if self.character == b'"' || self.character == 0 {
+                        break;
+                    }
+                }
+                let string = self.input[position..self.position].to_string();
+                Token::new(TokenKind::String(string))
             }
             c => {
                 if is_letter(c) {
@@ -96,9 +106,9 @@ impl Lexer {
                     return Token::new(kind);
                 } else if is_number(c) {
                     let number = self.read_number();
-                    return Token::new(Int(number));
+                    return Token::new(TokenKind::Int(number));
                 } else {
-                    return Token::new(Illegal);
+                    return Token::new(TokenKind::Illegal);
                 }
             }
         };
@@ -124,6 +134,8 @@ fn is_number(character: u8) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use std::vec;
+
     use super::*;
     use crate::token::TokenKind;
 
@@ -308,6 +320,19 @@ if (5 < 10) {
             TokenKind::NotEqual,
             TokenKind::Int(9),
             TokenKind::Semicolon,
+            TokenKind::Eof,
+        ];
+
+        test_next_token(input, &expected);
+    }
+
+    #[test]
+    fn text_strings() {
+        let input = r#""foobar"
+            "foo bar""#;
+        let expected = vec![
+            TokenKind::String("foobar".into()),
+            TokenKind::String("foo bar".into()),
             TokenKind::Eof,
         ];
 

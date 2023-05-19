@@ -7,6 +7,7 @@ pub enum TokenKind {
 
     Ident(String),
     Int(i64),
+    String(String),
 
     Assign,
     Plus,
@@ -40,7 +41,6 @@ pub enum TokenKind {
 
 impl TokenKind {
     pub fn from_letters(literal: &str) -> Self {
-        // TODO: use an hashmap
         match literal {
             "fn" => TokenKind::Function,
             "let" => TokenKind::Let,
@@ -61,6 +61,7 @@ impl Display for TokenKind {
             TokenKind::Eof => "EOF",
             TokenKind::Ident(_) => "IDENT",
             TokenKind::Int(_) => "INT",
+            TokenKind::String(_) => "STRING",
             TokenKind::Assign => "=",
             TokenKind::Plus => "+",
             TokenKind::Comma => ",",
