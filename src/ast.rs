@@ -42,6 +42,7 @@ pub enum Expression {
     Identifier(Identifier),
     Integer(i64),
     Boolean(bool),
+    String(String),
 
     If(Box<Expression>, Box<Statement>, Option<Box<Statement>>),
     Function(Vec<Expression>, Box<Statement>),
@@ -57,6 +58,7 @@ impl Display for Expression {
             Expression::Identifier(ident) => ident.to_string(),
             Expression::Integer(int) => int.to_string(),
             Expression::Boolean(bool) => bool.to_string(),
+            Expression::String(string) => string.clone(),
             Expression::If(condition, consequence, maybe_alterative) => {
                 let mut buf = format!("if {condition} {consequence}");
                 if let Some(alternative) = maybe_alterative {

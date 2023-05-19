@@ -85,6 +85,7 @@ impl Eval for Expression {
                     Ok(args) => apply_function(function, &args),
                 }
             }
+            _ => todo!(),
         }
     }
 }

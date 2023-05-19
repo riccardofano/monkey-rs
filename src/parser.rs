@@ -217,6 +217,7 @@ impl Parser {
             kind,
             TokenKind::Ident(_)
                 | TokenKind::Int(_)
+                | TokenKind::String(_)
                 | TokenKind::True
                 | TokenKind::False
                 | TokenKind::Bang
@@ -246,6 +247,7 @@ impl Parser {
         let expr = match &self.current_token.kind {
             TokenKind::Ident(value) => Expression::Identifier(Identifier(value.clone())),
             TokenKind::Int(value) => Expression::Integer(*value),
+            TokenKind::String(string) => Expression::String(string.clone()),
             TokenKind::True => Expression::Boolean(true),
             TokenKind::False => Expression::Boolean(false),
             TokenKind::Minus => {
@@ -823,5 +825,25 @@ mod tests {
         assert!(test_literal_expression(&args[0], &1));
         assert!(test_infix_expression(&args[1], &2, "*", &3));
         assert!(test_infix_expression(&args[2], &4, "+", &5));
+    }
+
+    #[test]
+    fn test_string_literal_expression() {
+        let input = r#""hello world""#;
+
+        let mut parser = Parser::new(Lexer::new(input));
+        let program = parser.parse_program();
+
+        assert_eq!(parser.errors().len(), 0, "{:?}", parser.errors());
+
+        let Statement::Expression(expr) = &program.statements[0] else {
+            panic!("Expected an Expression Statement. Got {:?}", program.statements[0]);
+        };
+
+        let Expression::String(string) = expr else {
+            panic!("Expected a String Expression. Got {:?}", expr);
+        };
+
+        assert_eq!(string.as_str(), "hello world");
     }
 }
