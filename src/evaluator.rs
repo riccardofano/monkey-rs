@@ -1,11 +1,6 @@
-use std::cell::RefCell;
-use std::rc::Rc;
-
 use crate::ast::{Expression, Identifier, Program, Statement};
-use crate::object::{Environment, Object, FALSE, TRUE};
+use crate::object::{Env, Environment, Object, FALSE, TRUE};
 use crate::token::TokenKind;
-
-pub type Env = Rc<RefCell<Environment>>;
 
 pub trait Eval {
     fn eval(&self, env: Env) -> Object;
@@ -79,7 +74,17 @@ impl Eval for Expression {
             Expression::Function(params, body) => {
                 Object::Function(params.clone(), *body.clone(), env)
             }
-            _ => todo!(),
+            Expression::Call(ident, arguments) => {
+                let function = ident.eval(env.clone());
+                if function.is_error() {
+                    return function;
+                }
+                let args = eval_expressions(arguments, env);
+                match args {
+                    Err(e) => e,
+                    Ok(args) => apply_function(function, &args),
+                }
+            }
         }
     }
 }
@@ -191,23 +196,58 @@ fn eval_if_expression(
     }
 }
 
+fn eval_expressions(expressions: &[Expression], env: Env) -> Result<Vec<Object>, Object> {
+    let mut result = Vec::with_capacity(expressions.len());
+    for expression in expressions {
+        let evaluated = expression.eval(env.clone());
+        if evaluated.is_error() {
+            return Err(evaluated);
+        }
+        result.push(evaluated);
+    }
+    Ok(result)
+}
+
+fn apply_function(func: Object, args: &[Object]) -> Object {
+    let Object::Function(params, body, env) = func else {
+        return new_error(format!("not a function: {func}"));
+    };
+    let extended_env = extend_function_env(env, &params, args);
+    let evaluated = body.eval(extended_env);
+
+    if let Object::ReturnValue(value) = evaluated {
+        return *value;
+    }
+    evaluated
+}
+
+fn extend_function_env(func_env: Env, params: &[Expression], args: &[Object]) -> Env {
+    let mut env = Environment::new_enclosed(func_env);
+    for (i, param) in params.iter().enumerate() {
+        if let Expression::Identifier(name) = param {
+            env.set(name.clone(), args[i].clone());
+        }
+    }
+    env.into_env()
+}
+
 fn eval_identifier(identifier: &Identifier, env: Env) -> Object {
     match env.borrow().get(identifier) {
-        Some(value) => value.clone(),
+        Some(value) => value,
         None => new_error(format!("identifier not found: {identifier}")),
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{lexer::Lexer, parser::Parser};
+    use crate::{lexer::Lexer, object::Environment, parser::Parser};
 
     use super::*;
 
     fn test_eval(input: &str) -> Object {
         let mut parser = Parser::new(Lexer::new(input));
         let program = parser.parse_program();
-        let env = Rc::new(RefCell::new(Environment::new()));
+        let env = Environment::new().into_env();
 
         program.eval(env)
     }
@@ -409,5 +449,21 @@ mod tests {
 
         assert_eq!(&params[0].to_string(), "x", "{:?}", params);
         assert_eq!(&body.to_string(), "(x + 2)", "{:?}", body);
+    }
+
+    #[test]
+    fn test_function_application() {
+        let inputs: Vec<(&str, i64)> = vec![
+            ("let identity = fn(x) { x; }; identity(5);", 5),
+            ("let identity = fn(x) { return x; }; identity(5);", 5),
+            ("let double = fn(x) { x * 2; }; double(5);", 10),
+            ("let add = fn(x, y) { x + y; }; add(5, 5);", 10),
+            ("let add = fn(x, y) { x + y; }; add(5 + 5, add(5, 5));", 20),
+            ("fn(x) { x; }(5)", 5),
+        ];
+
+        for input in inputs {
+            input.1.assert_object(&test_eval(input.0));
+        }
     }
 }

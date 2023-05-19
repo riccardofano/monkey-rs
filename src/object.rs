@@ -1,9 +1,6 @@
-use std::{collections::HashMap, fmt::Display};
+use std::{cell::RefCell, collections::HashMap, fmt::Display, rc::Rc};
 
-use crate::{
-    ast::{Expression, Identifier, Statement},
-    evaluator::Env,
-};
+use crate::ast::{Expression, Identifier, Statement};
 
 pub const TRUE: Object = Object::Boolean(true);
 pub const FALSE: Object = Object::Boolean(false);
@@ -69,20 +66,39 @@ impl From<bool> for Object {
     }
 }
 
+pub type Env = Rc<RefCell<Environment>>;
+
 #[derive(Debug)]
 pub struct Environment {
     store: HashMap<Identifier, Object>,
+    outer: Option<Env>,
 }
 
 impl Environment {
     pub fn new() -> Self {
         Self {
             store: HashMap::new(),
+            outer: None,
         }
     }
 
-    pub fn get(&self, name: &Identifier) -> Option<&Object> {
-        self.store.get(name)
+    pub fn new_enclosed(outer: Env) -> Self {
+        Self {
+            store: HashMap::new(),
+            outer: Some(outer),
+        }
+    }
+
+    pub fn into_env(self) -> Env {
+        Rc::new(RefCell::new(self))
+    }
+
+    pub fn get(&self, name: &Identifier) -> Option<Object> {
+        let inner_value = self.store.get(name);
+        match (inner_value, &self.outer) {
+            (None, Some(outer)) => outer.borrow().get(name),
+            (_, _) => inner_value.cloned(),
+        }
     }
 
     pub fn set(&mut self, name: Identifier, value: Object) {
