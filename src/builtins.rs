@@ -22,6 +22,7 @@ impl BuiltinFunction {
 
         match &args[0] {
             Object::String(string) => Object::Integer(string.len() as i64),
+            Object::Array(arr) => Object::Integer(arr.len() as i64),
             got => new_error(format!("argument to `len` not supported, got {got}")),
         }
     }
