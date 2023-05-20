@@ -51,6 +51,7 @@ pub enum Expression {
 
     Prefix(TokenKind, Box<Expression>),
     Infix(Box<Expression>, TokenKind, Box<Expression>),
+    Index(Box<Expression>, Box<Expression>),
 }
 
 impl Display for Expression {
@@ -77,6 +78,7 @@ impl Display for Expression {
             }
             Expression::Prefix(token, expr) => format!("({token}{expr})"),
             Expression::Infix(left, token, right) => format!("({left} {token} {right})"),
+            Expression::Index(left, index) => format!("({left}[{index}])"),
         };
         write!(f, "{matched}")
     }

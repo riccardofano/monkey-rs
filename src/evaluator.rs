@@ -88,6 +88,7 @@ impl Eval for Expression {
                 }
             }
             Expression::Array(_) => todo!(),
+            Expression::Index(_, _) => todo!(),
         }
     }
 }

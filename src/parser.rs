@@ -13,6 +13,7 @@ pub enum Precedence {
     Product,
     Prefix,
     Call,
+    Index,
 }
 
 impl From<&TokenKind> for Precedence {
@@ -27,6 +28,7 @@ impl From<&TokenKind> for Precedence {
             TokenKind::Slash => Precedence::Product,
             TokenKind::Asterisk => Precedence::Product,
             TokenKind::Lparen => Precedence::Call,
+            TokenKind::Lbracket => Precedence::Index,
             _ => Precedence::Lowest,
         }
     }
@@ -100,7 +102,6 @@ impl Parser {
         &self.current_token.kind == kind
     }
 
-    // TODO: use thiserror for errors instead of strings
     fn expect_peek(&mut self, kind: &TokenKind) -> Result<(), String> {
         if !self.peek_token_is(kind) {
             return Err(format!(
@@ -241,6 +242,7 @@ impl Parser {
                 | TokenKind::Equal
                 | TokenKind::NotEqual
                 | TokenKind::Lparen
+                | TokenKind::Lbracket
         )
     }
 
@@ -313,6 +315,12 @@ impl Parser {
             TokenKind::Lparen => {
                 let right = self.parse_expression_list(&TokenKind::Rparen)?;
                 Ok(Expression::Call(Box::new(left), right))
+            }
+            TokenKind::Lbracket => {
+                self.next_token();
+                let index = self.parse_expression(Precedence::Lowest)?;
+                self.expect_peek(&TokenKind::Rbracket)?;
+                Ok(Expression::Index(Box::new(left), Box::new(index)))
             }
             _ => {
                 let precedence = self.current_precedence();
@@ -632,6 +640,14 @@ mod tests {
                 "add(a + b + c * d / f + g)",
                 "add((((a + b) + ((c * d) / f)) + g))",
             ),
+            (
+                "a * [1, 2, 3, 4][b * c] * d",
+                "((a * ([1, 2, 3, 4][(b * c)])) * d)",
+            ),
+            (
+                "add(a * b[2], b[1], 2 * [1, 2][1])",
+                "add((a * (b[2])), (b[1]), (2 * ([1, 2][1])))",
+            ),
         ];
 
         for input in inputs {
@@ -871,5 +887,26 @@ mod tests {
         1i64.test_expression(&elements[0]);
         test_infix_expression(&elements[1], &2, "*", &2);
         test_infix_expression(&elements[2], &3, "+", &3);
+    }
+
+    #[test]
+    fn test_index_expressions() {
+        let input = "myArray[1 + 1]";
+
+        let mut parser = Parser::new(Lexer::new(input));
+        let program = parser.parse_program();
+
+        assert_eq!(parser.errors().len(), 0, "{:?}", parser.errors());
+
+        let Some(Statement::Expression(expression)) =  program.statements.get(0) else {
+            panic!("Expected an Expression Statement. Got {:?}", program.statements[0]);
+        };
+
+        let Expression::Index(left, index) = expression else {
+            panic!("Expected an Array. Got {:?}", expression);
+        };
+
+        "myArray".test_expression(&left);
+        test_infix_expression(&index, &1, "+", &1);
     }
 }
