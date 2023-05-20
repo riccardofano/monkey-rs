@@ -69,6 +69,8 @@ impl Lexer {
             b';' => Token::new(TokenKind::Semicolon),
             b'(' => Token::new(TokenKind::Lparen),
             b')' => Token::new(TokenKind::Rparen),
+            b'[' => Token::new(TokenKind::Lbracket),
+            b']' => Token::new(TokenKind::Rbracket),
             b'{' => Token::new(TokenKind::Lbrace),
             b'}' => Token::new(TokenKind::Rbrace),
             0 => Token::new(TokenKind::Eof),
@@ -145,11 +147,7 @@ mod tests {
         for expected_token in expected.iter() {
             let token = lexer.next_token();
 
-            assert_eq!(
-                &token.kind, expected_token,
-                "a: {:?} b: {:?}",
-                &token.kind, expected_token
-            );
+            assert_eq!(&token.kind, expected_token,);
         }
     }
 
@@ -333,6 +331,22 @@ if (5 < 10) {
         let expected = vec![
             TokenKind::String("foobar".into()),
             TokenKind::String("foo bar".into()),
+            TokenKind::Eof,
+        ];
+
+        test_next_token(input, &expected);
+    }
+
+    #[test]
+    fn text_arrays() {
+        let input = "[1, 2];";
+        let expected = vec![
+            TokenKind::Lbracket,
+            TokenKind::Int(1),
+            TokenKind::Comma,
+            TokenKind::Int(2),
+            TokenKind::Rbracket,
+            TokenKind::Semicolon,
             TokenKind::Eof,
         ];
 

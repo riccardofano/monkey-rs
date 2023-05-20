@@ -32,6 +32,8 @@ pub enum TokenKind {
 
     Lparen,
     Rparen,
+    Lbracket,
+    Rbracket,
     Lbrace,
     Rbrace,
 
@@ -68,6 +70,8 @@ impl Display for TokenKind {
             TokenKind::Semicolon => ";",
             TokenKind::Lparen => "(",
             TokenKind::Rparen => ")",
+            TokenKind::Lbracket => "[",
+            TokenKind::Rbracket => "]",
             TokenKind::Lbrace => "{",
             TokenKind::Rbrace => "}",
             TokenKind::Function => "FUNCTION",

@@ -225,6 +225,7 @@ impl Parser {
                 | TokenKind::Lparen
                 | TokenKind::If
                 | TokenKind::Function
+                | TokenKind::Lbracket
         )
     }
 
@@ -297,6 +298,9 @@ impl Parser {
 
                 Expression::Function(params, Box::new(body))
             }
+            TokenKind::Lbracket => {
+                Expression::Array(self.parse_expression_list(&TokenKind::Rbracket)?)
+            }
             _ => unimplemented!(),
         };
 
@@ -307,7 +311,7 @@ impl Parser {
         let token = self.current_token.kind.clone();
         match token {
             TokenKind::Lparen => {
-                let right = self.parse_call_expression()?;
+                let right = self.parse_expression_list(&TokenKind::Rparen)?;
                 Ok(Expression::Call(Box::new(left), right))
             }
             _ => {
@@ -320,23 +324,24 @@ impl Parser {
         }
     }
 
-    fn parse_call_expression(&mut self) -> Result<Vec<Expression>, String> {
-        let mut args = Vec::new();
-        if self.peek_token_is(&TokenKind::Rparen) {
+    fn parse_expression_list(&mut self, end: &TokenKind) -> Result<Vec<Expression>, String> {
+        let mut list = Vec::new();
+        if self.peek_token_is(end) {
             self.next_token();
-            return Ok(args);
+            return Ok(list);
         }
 
         self.next_token();
-        args.push(self.parse_expression(Precedence::Lowest)?);
+        list.push(self.parse_expression(Precedence::Lowest)?);
+
         while self.peek_token_is(&TokenKind::Comma) {
             self.next_token();
             self.next_token();
-            args.push(self.parse_expression(Precedence::Lowest)?);
+            list.push(self.parse_expression(Precedence::Lowest)?);
         }
 
-        self.expect_peek(&TokenKind::Rparen)?;
-        Ok(args)
+        self.expect_peek(end)?;
+        Ok(list)
     }
 
     fn peek_precedence(&self) -> Precedence {
@@ -845,5 +850,26 @@ mod tests {
         };
 
         assert_eq!(string.as_str(), "hello world");
+    }
+
+    #[test]
+    fn test_parsing_arrays() {
+        let input = "[1, 2 * 2, 3 + 3]";
+        let mut parser = Parser::new(Lexer::new(input));
+        let program = parser.parse_program();
+
+        assert_eq!(parser.errors().len(), 0, "{:?}", parser.errors());
+
+        let Some(Statement::Expression(expression)) =  program.statements.get(0) else {
+            panic!("Expected an Expression Statement. Got {:?}", program.statements[0]);
+        };
+
+        let Expression::Array(elements) = expression else {
+            panic!("Expected an Array. Got {:?}", expression);
+        };
+
+        1i64.test_expression(&elements[0]);
+        test_infix_expression(&elements[1], &2, "*", &2);
+        test_infix_expression(&elements[2], &3, "+", &3);
     }
 }

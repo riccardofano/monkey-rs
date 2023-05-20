@@ -43,6 +43,7 @@ pub enum Expression {
     Integer(i64),
     Boolean(bool),
     String(String),
+    Array(Vec<Expression>),
 
     If(Box<Expression>, Box<Statement>, Option<Box<Statement>>),
     Function(Vec<Expression>, Box<Statement>),
@@ -59,6 +60,7 @@ impl Display for Expression {
             Expression::Integer(int) => int.to_string(),
             Expression::Boolean(bool) => bool.to_string(),
             Expression::String(string) => string.clone(),
+            Expression::Array(arr) => format!("[{}]", join_expressions(arr, ", ")),
             Expression::If(condition, consequence, maybe_alterative) => {
                 let mut buf = format!("if {condition} {consequence}");
                 if let Some(alternative) = maybe_alterative {
@@ -68,26 +70,24 @@ impl Display for Expression {
                 buf
             }
             Expression::Function(params, body) => {
-                let params = params
-                    .iter()
-                    .map(|expr| expr.to_string())
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                format!("fn({params}) {body}")
+                format!("fn({}) {body}", join_expressions(params, ", "))
             }
             Expression::Call(ident, args) => {
-                let args = args
-                    .iter()
-                    .map(|expr| expr.to_string())
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                format!("{ident}({args})")
+                format!("{ident}({})", join_expressions(args, ", "))
             }
             Expression::Prefix(token, expr) => format!("({token}{expr})"),
             Expression::Infix(left, token, right) => format!("({left} {token} {right})"),
         };
         write!(f, "{matched}")
     }
+}
+
+fn join_expressions(expressions: &[Expression], pattern: &str) -> String {
+    expressions
+        .iter()
+        .map(|expr| expr.to_string())
+        .collect::<Vec<_>>()
+        .join(pattern)
 }
 
 pub struct Program {
