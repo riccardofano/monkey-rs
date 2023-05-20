@@ -1,5 +1,6 @@
 use crate::ast::{Expression, Identifier, Program, Statement};
-use crate::object::{Env, Environment, Object, FALSE, TRUE};
+use crate::builtins::BuiltinFunction;
+use crate::object::{new_error, Env, Environment, Object, FALSE, TRUE};
 use crate::token::TokenKind;
 
 pub trait Eval {
@@ -88,10 +89,6 @@ impl Eval for Expression {
             }
         }
     }
-}
-
-fn new_error(reason: String) -> Object {
-    Object::Error(reason)
 }
 
 fn eval_block_statement(statements: &[Statement], env: Env) -> Object {
@@ -217,16 +214,18 @@ fn eval_expressions(expressions: &[Expression], env: Env) -> Result<Vec<Object>,
 }
 
 fn apply_function(func: Object, args: &[Object]) -> Object {
-    let Object::Function(params, body, env) = func else {
-        return new_error(format!("not a function: {func}"));
-    };
-    let extended_env = extend_function_env(env, &params, args);
-    let evaluated = body.eval(extended_env);
-
-    if let Object::ReturnValue(value) = evaluated {
-        return *value;
+    match func {
+        Object::Function(params, body, env) => {
+            let extended_env = extend_function_env(env, &params, args);
+            let evaluated = body.eval(extended_env);
+            if let Object::ReturnValue(value) = evaluated {
+                return *value;
+            }
+            evaluated
+        }
+        Object::Builtin(func) => func.call(args),
+        _ => new_error(format!("not a function: {func}")),
     }
-    evaluated
 }
 
 fn extend_function_env(func_env: Env, params: &[Expression], args: &[Object]) -> Env {
@@ -240,10 +239,23 @@ fn extend_function_env(func_env: Env, params: &[Expression], args: &[Object]) ->
 }
 
 fn eval_identifier(identifier: &Identifier, env: Env) -> Object {
-    match env.borrow().get(identifier) {
-        Some(value) => value,
-        None => new_error(format!("identifier not found: {identifier}")),
+    if let Some(value) = env.borrow().get(identifier) {
+        return value;
     }
+    if let Some(builtin) = get_builtin(identifier) {
+        return builtin;
+    }
+
+    new_error(format!("identifier not found: {identifier}"))
+}
+
+fn get_builtin(identifier: &Identifier) -> Option<Object> {
+    let function = match identifier.0.as_str() {
+        "len" => BuiltinFunction::Len,
+        _ => return None,
+    };
+
+    Some(Object::Builtin(function))
 }
 
 #[cfg(test)]
@@ -288,6 +300,16 @@ mod tests {
             let Object::Null = object else {
                 panic!("object is not Null. Got {:?}", object);
             };
+        }
+    }
+
+    impl TestObject for &str {
+        fn assert_object(&self, object: &Object) {
+            match object {
+                Object::Error(message) => assert_eq!(message, self),
+                Object::String(string) => assert_eq!(string, self),
+                _ => panic!("Expected Error or String Object. Got {:?}", object),
+            }
         }
     }
 
@@ -514,5 +536,24 @@ addTwo(2);"#,
         };
 
         assert_eq!(string, "Hello World!")
+    }
+
+    #[test]
+    fn test_builtin_functions() {
+        let inputs: Vec<(&str, &dyn TestObject)> = vec![
+            (r#"len("")"#, &0),
+            (r#"len("four")"#, &4),
+            (r#"len("hello world")"#, &11),
+            (r#"len(1)"#, &"argument to `len` not supported, got INTEGER"),
+            (
+                r#"len("one", "two")"#,
+                &"wrong number of arguments. got=2, want=1",
+            ),
+        ];
+
+        for input in inputs {
+            let evaluated = test_eval(input.0);
+            input.1.assert_object(&evaluated)
+        }
     }
 }

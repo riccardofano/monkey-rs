@@ -1,6 +1,9 @@
 use std::{cell::RefCell, collections::HashMap, fmt::Display, rc::Rc};
 
-use crate::ast::{Expression, Identifier, Statement};
+use crate::{
+    ast::{Expression, Identifier, Statement},
+    builtins::BuiltinFunction,
+};
 
 pub const TRUE: Object = Object::Boolean(true);
 pub const FALSE: Object = Object::Boolean(false);
@@ -13,6 +16,7 @@ pub enum Object {
     Integer(i64),
     String(String),
     ReturnValue(Box<Object>),
+    Builtin(BuiltinFunction),
     Function(Vec<Expression>, Statement, Env),
 }
 
@@ -25,6 +29,7 @@ impl Object {
             Object::Integer(int) => int.to_string(),
             Object::String(string) => string.clone(),
             Object::ReturnValue(value) => value.to_string(),
+            Object::Builtin(_) => "builtin function".to_string(),
             Object::Function(params, body, _) => {
                 let params = params
                     .iter()
@@ -54,6 +59,7 @@ impl Display for Object {
             Object::Integer(_) => "INTEGER",
             Object::String(_) => "STRING",
             Object::ReturnValue(_) => "RETURN_VALUE",
+            Object::Builtin(_) => "BUILTIN",
             Object::Function(_, _, _) => "FUNCTION",
         };
         write!(f, "{kind}")
@@ -67,6 +73,10 @@ impl From<bool> for Object {
         }
         FALSE
     }
+}
+
+pub fn new_error(reason: String) -> Object {
+    Object::Error(reason)
 }
 
 pub type Env = Rc<RefCell<Environment>>;
