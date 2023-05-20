@@ -4,6 +4,7 @@ use crate::object::{new_error, Object};
 pub enum BuiltinFunction {
     Len,
     First,
+    Last,
 }
 
 impl BuiltinFunction {
@@ -11,6 +12,7 @@ impl BuiltinFunction {
         match self {
             BuiltinFunction::Len => BuiltinFunction::len(args),
             BuiltinFunction::First => BuiltinFunction::first(args),
+            BuiltinFunction::Last => BuiltinFunction::last(args),
         }
     }
 
@@ -38,7 +40,21 @@ impl BuiltinFunction {
         }
 
         match &args[0] {
-            Object::Array(arr) => arr.get(0).unwrap_or(&Object::Null).clone(),
+            Object::Array(arr) => arr.first().unwrap_or(&Object::Null).clone(),
+            got => new_error(format!("argument to `first` must be ARRAY, got {got}",)),
+        }
+    }
+
+    fn last(args: &[Object]) -> Object {
+        if args.len() != 1 {
+            return new_error(format!(
+                "wrong number of arguments. got={}, want=1",
+                args.len()
+            ));
+        }
+
+        match &args[0] {
+            Object::Array(arr) => arr.last().unwrap_or(&Object::Null).clone(),
             got => new_error(format!("argument to `first` must be ARRAY, got {got}",)),
         }
     }

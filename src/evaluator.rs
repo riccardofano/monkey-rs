@@ -282,6 +282,7 @@ fn get_builtin(identifier: &Identifier) -> Option<Object> {
     let function = match identifier.0.as_str() {
         "len" => BuiltinFunction::Len,
         "first" => BuiltinFunction::First,
+        "last" => BuiltinFunction::Last,
         _ => return None,
     };
 
