@@ -135,44 +135,51 @@ fn eval_infix_expression(left: Object, operator: &TokenKind, right: Object) -> O
         return new_error(format!("type mismatch: {left} {operator} {right}"));
     }
 
-    match (&left, &right) {
+    let created = match (&left, &right) {
         (Object::Integer(left), Object::Integer(right)) => {
             eval_integer_infix_expression(*left, operator, *right)
         }
         (Object::Boolean(left), Object::Boolean(right)) => {
             eval_boolean_infix_expression(*left, operator, *right)
         }
-        (_, _) => new_error(format!("unknown operator: {left} {operator} {right}")),
+        (Object::String(left), Object::String(right)) => {
+            eval_string_infix_expression(left, operator, right)
+        }
+        (_, _) => None,
+    };
+
+    match created {
+        Some(obj) => obj,
+        None => new_error(format!("unknown operator: {left} {operator} {right}")),
     }
 }
 
-fn eval_integer_infix_expression(left: i64, operator: &TokenKind, right: i64) -> Object {
+fn eval_integer_infix_expression(left: i64, operator: &TokenKind, right: i64) -> Option<Object> {
     match operator {
-        TokenKind::Plus => Object::Integer(left + right),
-        TokenKind::Minus => Object::Integer(left - right),
-        TokenKind::Asterisk => Object::Integer(left * right),
-        TokenKind::Slash => Object::Integer(left / right),
-        TokenKind::LessThan => (left < right).into(),
-        TokenKind::GreaterThan => (left > right).into(),
-        TokenKind::Equal => (left == right).into(),
-        TokenKind::NotEqual => (left != right).into(),
-        _ => new_error(format!(
-            "unknown operator: {} {operator} {}",
-            Object::Integer(left),
-            Object::Integer(right)
-        )),
+        TokenKind::Plus => Some(Object::Integer(left + right)),
+        TokenKind::Minus => Some(Object::Integer(left - right)),
+        TokenKind::Asterisk => Some(Object::Integer(left * right)),
+        TokenKind::Slash => Some(Object::Integer(left / right)),
+        TokenKind::LessThan => Some((left < right).into()),
+        TokenKind::GreaterThan => Some((left > right).into()),
+        TokenKind::Equal => Some((left == right).into()),
+        TokenKind::NotEqual => Some((left != right).into()),
+        _ => None,
     }
 }
 
-fn eval_boolean_infix_expression(left: bool, operator: &TokenKind, right: bool) -> Object {
+fn eval_boolean_infix_expression(left: bool, operator: &TokenKind, right: bool) -> Option<Object> {
     match operator {
-        TokenKind::Equal => (left == right).into(),
-        TokenKind::NotEqual => (left != right).into(),
-        _ => new_error(format!(
-            "unknown operator: {} {operator} {}",
-            Object::Boolean(left),
-            Object::Boolean(right)
-        )),
+        TokenKind::Equal => Some((left == right).into()),
+        TokenKind::NotEqual => Some((left != right).into()),
+        _ => None,
+    }
+}
+
+fn eval_string_infix_expression(left: &str, operator: &TokenKind, right: &str) -> Option<Object> {
+    match operator {
+        TokenKind::Plus => Some(Object::String(format!("{left}{right}"))),
+        _ => None,
     }
 }
 
@@ -408,6 +415,7 @@ mod tests {
                 "unknown operator: BOOLEAN + BOOLEAN",
             ),
             ("foobar", "identifier not found: foobar"),
+            (r#""Hello" - "World""#, "unknown operator: STRING - STRING"),
         ];
 
         for input in inputs {
@@ -489,6 +497,18 @@ addTwo(2);"#,
         let input = "\"Hello World!\"";
 
         let evaluated = test_eval(input);
+        let Object::String(string) = evaluated else {
+            panic!("Expected String Object. Got {:?}", evaluated);
+        };
+
+        assert_eq!(string, "Hello World!")
+    }
+
+    #[test]
+    fn test_string_concatenation() {
+        let input = r#""Hello" + " " + "World!""#;
+        let evaluated = test_eval(input);
+
         let Object::String(string) = evaluated else {
             panic!("Expected String Object. Got {:?}", evaluated);
         };
