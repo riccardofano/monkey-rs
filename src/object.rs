@@ -32,7 +32,7 @@ impl Object {
             Object::Array(elements) => {
                 let elements = elements
                     .iter()
-                    .map(|p| p.to_string())
+                    .map(|p| p.inspect())
                     .collect::<Vec<_>>()
                     .join(", ");
                 format!("[{elements}]")

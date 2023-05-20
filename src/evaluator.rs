@@ -283,6 +283,7 @@ fn get_builtin(identifier: &Identifier) -> Option<Object> {
         "len" => BuiltinFunction::Len,
         "first" => BuiltinFunction::First,
         "last" => BuiltinFunction::Last,
+        "rest" => BuiltinFunction::Rest,
         _ => return None,
     };
 
