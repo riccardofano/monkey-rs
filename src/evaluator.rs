@@ -281,6 +281,7 @@ fn eval_identifier(identifier: &Identifier, env: Env) -> Object {
 fn get_builtin(identifier: &Identifier) -> Option<Object> {
     let function = match identifier.0.as_str() {
         "len" => BuiltinFunction::Len,
+        "first" => BuiltinFunction::First,
         _ => return None,
     };
 
