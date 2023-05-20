@@ -94,7 +94,19 @@ impl Eval for Expression {
                     Ok(elements) => Object::Array(elements),
                 }
             }
-            Expression::Index(_, _) => todo!(),
+            Expression::Index(left, index) => {
+                let left = left.eval(env.clone());
+                if left.is_error() {
+                    // TODO: gonna change this to make use of the ? operator,
+                    // we're going Go style for now.
+                    return left;
+                }
+                let index = index.eval(env);
+                if index.is_error() {
+                    return index;
+                }
+                eval_index_expression(left, index)
+            }
         }
     }
 }
@@ -206,6 +218,15 @@ fn eval_if_expression(
     match alternative {
         Some(alternative) => alternative.eval(env),
         None => Object::Null,
+    }
+}
+
+fn eval_index_expression(left: Object, index: Object) -> Object {
+    match (&left, index) {
+        (Object::Array(arr), Object::Integer(i)) => {
+            arr.get(i as usize).unwrap_or(&Object::Null).clone()
+        }
+        (_, _) => new_error(format!("index operator not supported: {left}")),
     }
 }
 
@@ -577,5 +598,32 @@ addTwo(2);"#,
         1i64.assert_object(&elements[0]);
         4i64.assert_object(&elements[1]);
         6i64.assert_object(&elements[2]);
+    }
+
+    #[test]
+    fn test_array_index_expressions() {
+        let inputs: Vec<(&str, &dyn TestObject)> = vec![
+            ("[1, 2, 3][0]", &1),
+            ("[1, 2, 3][1]", &2),
+            ("[1, 2, 3][2]", &3),
+            ("let i = 0; [1][i];", &1),
+            ("[1, 2, 3][1 + 1];", &3),
+            ("let myArray = [1, 2, 3]; myArray[2];", &3),
+            (
+                "let myArray = [1, 2, 3]; myArray[0] + myArray[1] + myArray[2];",
+                &6,
+            ),
+            (
+                "let myArray = [1, 2, 3]; let i = myArray[0]; myArray[i]",
+                &2,
+            ),
+            ("[1, 2, 3][3]", &None),
+            ("[1, 2, 3][-1]", &None),
+        ];
+
+        for input in inputs {
+            let evaluated = test_eval(input.0);
+            input.1.assert_object(&evaluated)
+        }
     }
 }
