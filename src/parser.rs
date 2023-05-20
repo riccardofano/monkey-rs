@@ -906,7 +906,7 @@ mod tests {
             panic!("Expected an Array. Got {:?}", expression);
         };
 
-        "myArray".test_expression(&left);
-        test_infix_expression(&index, &1, "+", &1);
+        "myArray".test_expression(left);
+        test_infix_expression(index, &1, "+", &1);
     }
 }

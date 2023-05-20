@@ -87,7 +87,13 @@ impl Eval for Expression {
                     Ok(args) => apply_function(function, &args),
                 }
             }
-            Expression::Array(_) => todo!(),
+            Expression::Array(elements) => {
+                let elements = eval_expressions(elements, env);
+                match elements {
+                    Err(e) => e,
+                    Ok(elements) => Object::Array(elements),
+                }
+            }
             Expression::Index(_, _) => todo!(),
         }
     }
@@ -557,5 +563,19 @@ addTwo(2);"#,
             let evaluated = test_eval(input.0);
             input.1.assert_object(&evaluated)
         }
+    }
+
+    #[test]
+    fn test_parsing_arrays() {
+        let input = "[1, 2 * 2, 3 + 3]";
+        let evaluated = test_eval(input);
+
+        let Object::Array(elements) = evaluated else {
+            panic!("Expected Array Object. Got {:?}", evaluated);
+        };
+
+        1i64.assert_object(&elements[0]);
+        4i64.assert_object(&elements[1]);
+        6i64.assert_object(&elements[2]);
     }
 }

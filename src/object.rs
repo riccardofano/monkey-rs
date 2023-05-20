@@ -15,6 +15,7 @@ pub enum Object {
     Boolean(bool),
     Integer(i64),
     String(String),
+    Array(Vec<Object>),
     ReturnValue(Box<Object>),
     Builtin(BuiltinFunction),
     Function(Vec<Expression>, Statement, Env),
@@ -28,6 +29,14 @@ impl Object {
             Object::Boolean(bool) => bool.to_string(),
             Object::Integer(int) => int.to_string(),
             Object::String(string) => string.clone(),
+            Object::Array(elements) => {
+                let elements = elements
+                    .iter()
+                    .map(|p| p.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                format!("[{elements}]")
+            }
             Object::ReturnValue(value) => value.to_string(),
             Object::Builtin(_) => "builtin function".to_string(),
             Object::Function(params, body, _) => {
@@ -58,6 +67,7 @@ impl Display for Object {
             Object::Boolean(_) => "BOOLEAN",
             Object::Integer(_) => "INTEGER",
             Object::String(_) => "STRING",
+            Object::Array(_) => "ARRAY",
             Object::ReturnValue(_) => "RETURN_VALUE",
             Object::Builtin(_) => "BUILTIN",
             Object::Function(_, _, _) => "FUNCTION",
