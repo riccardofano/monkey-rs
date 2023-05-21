@@ -1,8 +1,8 @@
-use std::fmt::Display;
+use std::{collections::BTreeMap, fmt::Display};
 
 use crate::token::TokenKind;
 
-#[derive(Debug, Hash, PartialEq, Eq, Clone)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Identifier(pub String);
 
 impl Display for Identifier {
@@ -11,7 +11,7 @@ impl Display for Identifier {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Statement {
     Let(Identifier, Expression),
     Return(Expression),
@@ -37,13 +37,14 @@ impl Display for Statement {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Expression {
     Identifier(Identifier),
     Integer(i64),
     Boolean(bool),
     String(String),
     Array(Vec<Expression>),
+    Map(BTreeMap<Expression, Expression>),
 
     If(Box<Expression>, Box<Statement>, Option<Box<Statement>>),
     Function(Vec<Expression>, Box<Statement>),
@@ -62,6 +63,14 @@ impl Display for Expression {
             Expression::Boolean(bool) => bool.to_string(),
             Expression::String(string) => string.clone(),
             Expression::Array(arr) => format!("[{}]", join_expressions(arr, ", ")),
+            Expression::Map(hashmap) => {
+                let pairs = hashmap
+                    .iter()
+                    .map(|(key, value)| format!("{key}:{value}"))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                format!("{{{pairs}}}")
+            }
             Expression::If(condition, consequence, maybe_alterative) => {
                 let mut buf = format!("if {condition} {consequence}");
                 if let Some(alternative) = maybe_alterative {

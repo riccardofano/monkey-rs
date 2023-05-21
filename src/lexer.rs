@@ -66,6 +66,7 @@ impl Lexer {
             b'<' => Token::new(TokenKind::LessThan),
             b'>' => Token::new(TokenKind::GreaterThan),
             b',' => Token::new(TokenKind::Comma),
+            b':' => Token::new(TokenKind::Colon),
             b';' => Token::new(TokenKind::Semicolon),
             b'(' => Token::new(TokenKind::Lparen),
             b')' => Token::new(TokenKind::Rparen),
@@ -243,6 +244,7 @@ if (5 < 10) {
 
 10 == 10;
 10 != 9;
+{"foo": "bar"}
 "#;
         let expected = vec![
             TokenKind::Let,
@@ -318,6 +320,11 @@ if (5 < 10) {
             TokenKind::NotEqual,
             TokenKind::Int(9),
             TokenKind::Semicolon,
+            TokenKind::Lbrace,
+            TokenKind::String(String::from("foo")),
+            TokenKind::Colon,
+            TokenKind::String(String::from("bar")),
+            TokenKind::Rbrace,
             TokenKind::Eof,
         ];
 

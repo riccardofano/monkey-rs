@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use crate::{
     ast::{Expression, Identifier, Program, Statement},
     lexer::Lexer,
@@ -227,6 +229,7 @@ impl Parser {
                 | TokenKind::If
                 | TokenKind::Function
                 | TokenKind::Lbracket
+                | TokenKind::Lbrace
         )
     }
 
@@ -303,6 +306,24 @@ impl Parser {
             TokenKind::Lbracket => {
                 Expression::Array(self.parse_expression_list(&TokenKind::Rbracket)?)
             }
+            TokenKind::Lbrace => {
+                let mut map: BTreeMap<Expression, Expression> = BTreeMap::new();
+                while !self.peek_token_is(&TokenKind::Rbrace) {
+                    self.next_token();
+                    let key = self.parse_expression(Precedence::Lowest)?;
+
+                    self.expect_peek(&TokenKind::Colon)?;
+                    self.next_token();
+                    let value = self.parse_expression(Precedence::Lowest)?;
+
+                    map.insert(key, value);
+                    if !self.peek_token_is(&TokenKind::Rbrace) {
+                        self.expect_peek(&TokenKind::Comma)?;
+                    }
+                }
+                self.expect_peek(&TokenKind::Rbrace)?;
+                Expression::Map(map)
+            }
             _ => unimplemented!(),
         };
 
@@ -365,6 +386,8 @@ impl Parser {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use super::*;
     use crate::ast::Statement;
 
@@ -908,5 +931,85 @@ mod tests {
 
         "myArray".test_expression(left);
         test_infix_expression(index, &1, "+", &1);
+    }
+
+    #[test]
+    fn test_parsing_empty_map() {
+        let input = "{}";
+        let mut parser = Parser::new(Lexer::new(input));
+        let program = parser.parse_program();
+
+        assert_eq!(parser.errors().len(), 0, "{:?}", parser.errors());
+
+        let Some(Statement::Expression(expression)) =  program.statements.get(0) else {
+            panic!("Expected an Expression Statement. Got {:?}", program.statements[0]);
+        };
+
+        let Expression::Map(pairs) = expression else {
+            panic!("Expected an HashMap. Got {:?}", expression);
+        };
+
+        assert_eq!(pairs.len(), 0);
+    }
+
+    #[test]
+    fn test_parsing_map_string_keys() {
+        let input = r#"{"one": 1, "two": 2, "three": 3}"#;
+        let mut parser = Parser::new(Lexer::new(input));
+        let program = parser.parse_program();
+
+        assert_eq!(parser.errors().len(), 0, "{:?}", parser.errors());
+
+        let Some(Statement::Expression(expression)) =  program.statements.get(0) else {
+            panic!("Expected an Expression Statement. Got {:?}", program.statements[0]);
+        };
+
+        let Expression::Map(pairs) = expression else {
+            panic!("Expected an HashMap. Got {:?}", expression);
+        };
+
+        assert_eq!(pairs.len(), 3);
+
+        let expected = HashMap::from([("one", 1i64), ("two", 2), ("three", 3)]);
+        for (key, value) in pairs {
+            let Expression::String(literal) = key  else {
+                panic!("Expected key to be a String Expression. Got {:?}", key);
+            };
+            let expected_value = expected[literal.as_str()];
+            expected_value.test_expression(value);
+        }
+    }
+
+    #[test]
+    fn test_parsing_map_with_expressions() {
+        let input = r#"{"one": 0 + 1, "two": 10 - 8, "three": 15 / 5}"#;
+        let mut parser = Parser::new(Lexer::new(input));
+        let program = parser.parse_program();
+
+        assert_eq!(parser.errors().len(), 0, "{:?}", parser.errors());
+
+        let Some(Statement::Expression(expression)) =  program.statements.get(0) else {
+            panic!("Expected an Expression Statement. Got {:?}", program.statements[0]);
+        };
+
+        let Expression::Map(pairs) = expression else {
+            panic!("Expected an HashMap. Got {:?}", expression);
+        };
+
+        assert_eq!(pairs.len(), 3);
+
+        let expected: HashMap<&str, (i64, &str, i64)> = HashMap::from([
+            ("one", (0, "+", 1)),
+            ("two", (10, "-", 8)),
+            ("three", (15, "/", 5)),
+        ]);
+        for (key, value) in pairs {
+            let Expression::String(literal) = key  else {
+                panic!("Expected key to be a String Expression. Got {:?}", key);
+            };
+
+            let (left, op, right) = expected[literal.as_str()];
+            test_infix_expression(value, &left, op, &right);
+        }
     }
 }

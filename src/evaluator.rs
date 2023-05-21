@@ -107,6 +107,7 @@ impl Eval for Expression {
                 }
                 eval_index_expression(left, index)
             }
+            _ => todo!(),
         }
     }
 }

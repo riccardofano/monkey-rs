@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum TokenKind {
     Illegal,
     Eof,
@@ -28,6 +28,7 @@ pub enum TokenKind {
     GreaterThan,
 
     Comma,
+    Colon,
     Semicolon,
 
     Lparen,
@@ -67,6 +68,7 @@ impl Display for TokenKind {
             TokenKind::Assign => "=",
             TokenKind::Plus => "+",
             TokenKind::Comma => ",",
+            TokenKind::Colon => ":",
             TokenKind::Semicolon => ";",
             TokenKind::Lparen => "(",
             TokenKind::Rparen => ")",
