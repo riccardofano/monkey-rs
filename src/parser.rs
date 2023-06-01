@@ -213,15 +213,6 @@ impl Parser {
         Ok(expression)
     }
 
-    fn parse_literal(&mut self, precedence: Precedence) -> Result<Literal, String> {
-        let expression = self.parse_expression(precedence)?;
-        let Expression::Literal(literal) = expression else {
-            return Err(format!("Expected a Literal Expression. Got: {}", expression));
-        };
-
-        Ok(literal)
-    }
-
     fn has_parse_prefix_fn(kind: &TokenKind) -> bool {
         matches!(
             kind,
@@ -314,10 +305,10 @@ impl Parser {
                 Expression::Array(self.parse_expression_list(&TokenKind::Rbracket)?)
             }
             TokenKind::Lbrace => {
-                let mut pairs: Vec<(Literal, Expression)> = Vec::new();
+                let mut pairs: Vec<(Expression, Expression)> = Vec::new();
                 while !self.peek_token_is(&TokenKind::Rbrace) {
                     self.next_token();
-                    let key = self.parse_literal(Precedence::Lowest)?;
+                    let key = self.parse_expression(Precedence::Lowest)?;
 
                     self.expect_peek(&TokenKind::Colon)?;
                     self.next_token();
@@ -993,8 +984,12 @@ mod tests {
 
         let expected = HashMap::from([("one", 1i64), ("two", 2), ("three", 3)]);
         for (key, value) in pairs {
-            let Literal::String(string) = key else {
+            let Expression::Literal(literal) = key else {
                 panic!("Expected key to be a String Literal. Got {:?}", key);
+            };
+
+            let Literal::String(string) = literal else {
+                panic!("Expected literal to be a String Literal. Got {:?}", literal);
             };
             let expected_value = expected[string.as_str()];
             expected_value.test_expression(value);
@@ -1025,11 +1020,15 @@ mod tests {
             ("three", (15, "/", 5)),
         ]);
         for (key, value) in pairs {
-            let Literal::String(literal) = key  else {
-                panic!("Expected key to be a String Expression. Got {:?}", key);
+            let Expression::Literal(literal) = key  else {
+                panic!("Expected key to be a Literal Expression. Got {:?}", key);
             };
 
-            let (left, op, right) = expected[literal.as_str()];
+            let Literal::String(string) = literal else {
+                panic!("Expected literal to be a String. Got {:?}", literal);
+            };
+
+            let (left, op, right) = expected[string.as_str()];
             test_infix_expression(value, &left, op, &right);
         }
     }

@@ -60,7 +60,7 @@ pub enum Expression {
     Identifier(Identifier),
     Literal(Literal),
     Array(Vec<Expression>),
-    Hash(Vec<(Literal, Expression)>),
+    Hash(Vec<(Expression, Expression)>),
 
     If(Box<Expression>, Box<Statement>, Option<Box<Statement>>),
     Function(Vec<Expression>, Box<Statement>),

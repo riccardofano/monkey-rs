@@ -692,4 +692,39 @@ addTwo(2);"#,
             value.assert_object(actual_value);
         }
     }
+
+    #[test]
+    fn test_hash_expression_values() {
+        let input = r#"let two = "two";
+        {
+            "one": 10 - 9,
+            two: 1 + 1,
+            "th" + "ree": 6 / 2,
+            4: 4,
+            true: 5,
+            false: 6
+        }"#;
+
+        let evaluated = test_eval(input);
+        let Object::Hash(map) = evaluated else {
+            panic!("Eval didn't return Hash. Got: {:?}", evaluated);
+        };
+
+        let expected: Vec<(Object, i64)> = vec![
+            (Object::String("one".into()), 1),
+            (Object::String("two".into()), 2),
+            (Object::String("three".into()), 3),
+            (Object::Integer(4), 4),
+            (TRUE, 5),
+            (FALSE, 6),
+        ];
+
+        assert_eq!(map.len(), expected.len());
+
+        for (key, value) in expected {
+            let actual_value = &map[&key];
+
+            value.assert_object(actual_value);
+        }
+    }
 }
