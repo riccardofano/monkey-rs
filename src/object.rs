@@ -66,6 +66,13 @@ impl Object {
     pub fn is_error(&self) -> bool {
         matches!(self, Object::Error(_))
     }
+
+    pub fn is_hashable(&self) -> bool {
+        matches!(
+            self,
+            Object::String(_) | Object::Integer(_) | Object::Boolean(_)
+        )
+    }
 }
 
 impl Display for Object {

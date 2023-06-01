@@ -248,9 +248,16 @@ fn eval_if_expression(
 }
 
 fn eval_index_expression(left: Object, index: Object) -> Object {
-    match (&left, index) {
+    match (&left, &index) {
         (Object::Array(arr), Object::Integer(i)) => {
-            arr.get(i as usize).unwrap_or(&Object::Null).clone()
+            arr.get(*i as usize).unwrap_or(&Object::Null).clone()
+        }
+        (Object::Hash(map), _) => {
+            if !index.is_hashable() {
+                return new_error(format!("unusable as hash key: {}", &index));
+            }
+
+            map.get(&index).unwrap_or(&Object::Null).clone()
         }
         (_, _) => new_error(format!("index operator not supported: {left}")),
     }
@@ -325,9 +332,7 @@ mod tests {
 
     fn test_eval(input: &str) -> Object {
         let mut parser = Parser::new(Lexer::new(input));
-        dbg!(&parser);
         let program = parser.parse_program();
-        dbg!(&parser);
         let env = Environment::new().into_env();
 
         program.eval(env)
@@ -725,6 +730,24 @@ addTwo(2);"#,
             let actual_value = &map[&key];
 
             value.assert_object(actual_value);
+        }
+    }
+
+    #[test]
+    fn test_hash_index_expressions() {
+        let inputs: Vec<(&str, &dyn TestObject)> = vec![
+            (r#"{"foo": 5}["foo"]"#, &5),
+            (r#"{"foo": 5}["bar"]"#, &None),
+            (r#"let key = "foo"; {"foo": 5}[key]"#, &5),
+            (r#"{}["foo"]"#, &None),
+            (r#"{5: 5}[5]"#, &5),
+            (r#"{true: 5}[true]"#, &5),
+            (r#"{false: 5}[false]"#, &5),
+        ];
+
+        for input in inputs {
+            let evaluated = test_eval(input.0);
+            input.1.assert_object(&evaluated);
         }
     }
 }
