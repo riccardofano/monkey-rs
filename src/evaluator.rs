@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::ast::{Expression, Identifier, Literal, Program, Statement};
 use crate::builtins::BuiltinFunction;
 use crate::object::{new_error, Env, Environment, Object, FALSE, TRUE};
@@ -92,6 +94,22 @@ impl Eval for Expression {
                     Ok(elements) => Object::Array(elements),
                 }
             }
+            Expression::Hash(pairs) => {
+                let mut map = HashMap::new();
+                for (key, value) in pairs {
+                    let key = key.eval(env.clone());
+                    if key.is_error() {
+                        return key;
+                    }
+                    let value = value.eval(env.clone());
+                    if value.is_error() {
+                        return value;
+                    }
+                    map.insert(key, value);
+                }
+
+                Object::Hash(map)
+            }
             Expression::Index(left, index) => {
                 let left = left.eval(env.clone());
                 if left.is_error() {
@@ -105,7 +123,6 @@ impl Eval for Expression {
                 }
                 eval_index_expression(left, index)
             }
-            _ => todo!(),
         }
     }
 }
@@ -308,7 +325,9 @@ mod tests {
 
     fn test_eval(input: &str) -> Object {
         let mut parser = Parser::new(Lexer::new(input));
+        dbg!(&parser);
         let program = parser.parse_program();
+        dbg!(&parser);
         let env = Environment::new().into_env();
 
         program.eval(env)
@@ -637,6 +656,40 @@ addTwo(2);"#,
         for input in inputs {
             let evaluated = test_eval(input.0);
             input.1.assert_object(&evaluated)
+        }
+    }
+
+    #[test]
+    fn test_hash_literal_values() {
+        let input = r#"{
+            "one": 10 - 9,
+            "two": 1 + 1,
+            "three": 6 / 2,
+            4: 4,
+            true: 5,
+            false: 6
+        }"#;
+
+        let evaluated = test_eval(input);
+        let Object::Hash(map) = evaluated else {
+            panic!("Eval didn't return Hash. Got: {:?}", evaluated);
+        };
+
+        let expected: Vec<(Object, i64)> = vec![
+            (Object::String("one".into()), 1),
+            (Object::String("two".into()), 2),
+            (Object::String("three".into()), 3),
+            (Object::Integer(4), 4),
+            (TRUE, 5),
+            (FALSE, 6),
+        ];
+
+        assert_eq!(map.len(), expected.len());
+
+        for (key, value) in expected {
+            let actual_value = &map[&key];
+
+            value.assert_object(actual_value);
         }
     }
 }

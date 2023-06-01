@@ -1,6 +1,6 @@
 use crate::object::{new_error, Object};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BuiltinFunction {
     Len,
     First,

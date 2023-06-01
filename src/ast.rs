@@ -11,7 +11,7 @@ impl Display for Identifier {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Statement {
     Let(Identifier, Expression),
     Return(Expression),
@@ -37,7 +37,7 @@ impl Display for Statement {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Literal {
     Integer(i64),
     Boolean(bool),
@@ -55,7 +55,7 @@ impl Display for Literal {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Expression {
     Identifier(Identifier),
     Literal(Literal),

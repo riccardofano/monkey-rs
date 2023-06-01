@@ -8,7 +8,7 @@ use crate::{
 pub const TRUE: Object = Object::Boolean(true);
 pub const FALSE: Object = Object::Boolean(false);
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Object {
     Null,
     Error(String),
@@ -16,6 +16,7 @@ pub enum Object {
     Integer(i64),
     String(String),
     Array(Vec<Object>),
+    Hash(HashMap<Object, Object>),
     ReturnValue(Box<Object>),
     Builtin(BuiltinFunction),
     Function(Vec<Expression>, Statement, Env),
@@ -36,6 +37,14 @@ impl Object {
                     .collect::<Vec<_>>()
                     .join(", ");
                 format!("[{elements}]")
+            }
+            Object::Hash(map) => {
+                let pairs = map
+                    .iter()
+                    .map(|(key, value)| format!("{}: {}", key.inspect(), value.inspect()))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                format!("{{{pairs}}}")
             }
             Object::ReturnValue(value) => value.to_string(),
             Object::Builtin(_) => "builtin function".to_string(),
@@ -68,6 +77,7 @@ impl Display for Object {
             Object::Integer(_) => "INTEGER",
             Object::String(_) => "STRING",
             Object::Array(_) => "ARRAY",
+            Object::Hash(_) => "HASH",
             Object::ReturnValue(_) => "RETURN_VALUE",
             Object::Builtin(_) => "BUILTIN",
             Object::Function(_, _, _) => "FUNCTION",
@@ -85,6 +95,7 @@ impl From<bool> for Object {
     }
 }
 
+#[allow(clippy::all)]
 impl Hash for Object {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         match self {
@@ -102,7 +113,7 @@ pub fn new_error(reason: String) -> Object {
 
 pub type Env = Rc<RefCell<Environment>>;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Environment {
     store: HashMap<Identifier, Object>,
     outer: Option<Env>,
