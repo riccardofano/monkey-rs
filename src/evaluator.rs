@@ -504,6 +504,10 @@ mod tests {
             ),
             ("foobar", "identifier not found: foobar"),
             (r#""Hello" - "World""#, "unknown operator: STRING - STRING"),
+            (
+                r#"{"name": "Monkey"}[fn(x) { x }];"#,
+                "unusable as hash key: FUNCTION",
+            ),
         ];
 
         for input in inputs {
