@@ -1,4 +1,4 @@
-use std::{cell::RefCell, collections::HashMap, fmt::Display, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, fmt::Display, hash::Hash, rc::Rc};
 
 use crate::{
     ast::{Expression, Identifier, Statement},
@@ -85,6 +85,17 @@ impl From<bool> for Object {
     }
 }
 
+impl Hash for Object {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        match self {
+            Object::Boolean(bool) => bool.hash(state),
+            Object::Integer(int) => int.hash(state),
+            Object::String(string) => string.hash(state),
+            _ => "".hash(state),
+        }
+    }
+}
+
 pub fn new_error(reason: String) -> Object {
     Object::Error(reason)
 }
@@ -126,5 +137,30 @@ impl Environment {
 
     pub fn set(&mut self, name: Identifier, value: Object) {
         self.store.insert(name, value);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{collections::hash_map::DefaultHasher, hash::Hasher};
+
+    use super::*;
+
+    fn calculate_hash<T: Hash>(t: &T) -> u64 {
+        let mut s = DefaultHasher::new();
+        t.hash(&mut s);
+        s.finish()
+    }
+
+    #[test]
+    fn test_string_hashkey() {
+        let hello1 = Object::String("Hello World".into());
+        let hello2 = Object::String("Hello World".into());
+
+        let diff1 = Object::String("My name is johnny".into());
+        let diff2 = Object::String("My name is johnny".into());
+
+        assert_eq!(calculate_hash(&hello1), calculate_hash(&hello2));
+        assert_eq!(calculate_hash(&diff1), calculate_hash(&diff2));
     }
 }
