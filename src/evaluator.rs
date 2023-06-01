@@ -1,4 +1,4 @@
-use crate::ast::{Expression, Identifier, Program, Statement};
+use crate::ast::{Expression, Identifier, Literal, Program, Statement};
 use crate::builtins::BuiltinFunction;
 use crate::object::{new_error, Env, Environment, Object, FALSE, TRUE};
 use crate::token::TokenKind;
@@ -50,9 +50,7 @@ impl Eval for Statement {
 impl Eval for Expression {
     fn eval(&self, env: Env) -> Object {
         match self {
-            Expression::Integer(int) => Object::Integer(*int),
-            Expression::String(string) => Object::String(string.clone()),
-            Expression::Boolean(bool) => (*bool).into(),
+            Expression::Literal(literal) => literal.eval(env),
             Expression::Identifier(ident) => eval_identifier(ident, env),
             Expression::If(cond, cons, alt) => eval_if_expression(cond, cons, alt, env),
             Expression::Prefix(op, value) => {
@@ -108,6 +106,16 @@ impl Eval for Expression {
                 eval_index_expression(left, index)
             }
             _ => todo!(),
+        }
+    }
+}
+
+impl Eval for Literal {
+    fn eval(&self, _env: Env) -> Object {
+        match self {
+            Literal::Integer(int) => Object::Integer(*int),
+            Literal::String(string) => Object::String(string.clone()),
+            Literal::Boolean(bool) => (*bool).into(),
         }
     }
 }

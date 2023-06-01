@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, fmt::Display};
+use std::fmt::Display;
 
 use crate::token::TokenKind;
 
@@ -11,7 +11,7 @@ impl Display for Identifier {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone)]
 pub enum Statement {
     Let(Identifier, Expression),
     Return(Expression),
@@ -37,14 +37,30 @@ impl Display for Statement {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Expression {
-    Identifier(Identifier),
+#[derive(Debug, Clone)]
+pub enum Literal {
     Integer(i64),
     Boolean(bool),
     String(String),
+}
+
+impl Display for Literal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let matched = match self {
+            Literal::Integer(int) => int.to_string(),
+            Literal::Boolean(bool) => bool.to_string(),
+            Literal::String(string) => string.clone(),
+        };
+        write!(f, "{}", matched)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum Expression {
+    Identifier(Identifier),
+    Literal(Literal),
     Array(Vec<Expression>),
-    Map(BTreeMap<Expression, Expression>),
+    Hash(Vec<(Literal, Expression)>),
 
     If(Box<Expression>, Box<Statement>, Option<Box<Statement>>),
     Function(Vec<Expression>, Box<Statement>),
@@ -59,14 +75,12 @@ impl Display for Expression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let matched = match self {
             Expression::Identifier(ident) => ident.to_string(),
-            Expression::Integer(int) => int.to_string(),
-            Expression::Boolean(bool) => bool.to_string(),
-            Expression::String(string) => string.clone(),
+            Expression::Literal(literal) => literal.to_string(),
             Expression::Array(arr) => format!("[{}]", join_expressions(arr, ", ")),
-            Expression::Map(hashmap) => {
-                let pairs = hashmap
+            Expression::Hash(pairs) => {
+                let pairs = pairs
                     .iter()
-                    .map(|(key, value)| format!("{key}:{value}"))
+                    .map(|(literal, expr)| format!("{literal}: {expr}"))
                     .collect::<Vec<_>>()
                     .join(", ");
                 format!("{{{pairs}}}")

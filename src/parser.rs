@@ -1,7 +1,5 @@
-use std::collections::BTreeMap;
-
 use crate::{
-    ast::{Expression, Identifier, Program, Statement},
+    ast::{Expression, Identifier, Literal, Program, Statement},
     lexer::Lexer,
     token::{Token, TokenKind},
 };
@@ -215,6 +213,15 @@ impl Parser {
         Ok(expression)
     }
 
+    fn parse_literal(&mut self, precedence: Precedence) -> Result<Literal, String> {
+        let expression = self.parse_expression(precedence)?;
+        let Expression::Literal(literal) = expression else {
+            return Err(format!("Expected a Literal Expression. Got: {}", expression));
+        };
+
+        Ok(literal)
+    }
+
     fn has_parse_prefix_fn(kind: &TokenKind) -> bool {
         matches!(
             kind,
@@ -252,10 +259,10 @@ impl Parser {
     fn parse_prefix(&mut self) -> Result<Expression, String> {
         let expr = match &self.current_token.kind {
             TokenKind::Ident(value) => Expression::Identifier(Identifier(value.clone())),
-            TokenKind::Int(value) => Expression::Integer(*value),
-            TokenKind::String(string) => Expression::String(string.clone()),
-            TokenKind::True => Expression::Boolean(true),
-            TokenKind::False => Expression::Boolean(false),
+            TokenKind::Int(value) => Expression::Literal(Literal::Integer(*value)),
+            TokenKind::String(string) => Expression::Literal(Literal::String(string.clone())),
+            TokenKind::True => Expression::Literal(Literal::Boolean(true)),
+            TokenKind::False => Expression::Literal(Literal::Boolean(false)),
             TokenKind::Minus => {
                 self.next_token();
                 Expression::Prefix(
@@ -307,22 +314,22 @@ impl Parser {
                 Expression::Array(self.parse_expression_list(&TokenKind::Rbracket)?)
             }
             TokenKind::Lbrace => {
-                let mut map: BTreeMap<Expression, Expression> = BTreeMap::new();
+                let mut pairs: Vec<(Literal, Expression)> = Vec::new();
                 while !self.peek_token_is(&TokenKind::Rbrace) {
                     self.next_token();
-                    let key = self.parse_expression(Precedence::Lowest)?;
+                    let key = self.parse_literal(Precedence::Lowest)?;
 
                     self.expect_peek(&TokenKind::Colon)?;
                     self.next_token();
                     let value = self.parse_expression(Precedence::Lowest)?;
 
-                    map.insert(key, value);
+                    pairs.push((key, value));
                     if !self.peek_token_is(&TokenKind::Rbrace) {
                         self.expect_peek(&TokenKind::Comma)?;
                     }
                 }
                 self.expect_peek(&TokenKind::Rbrace)?;
-                Expression::Map(map)
+                Expression::Hash(pairs)
             }
             _ => unimplemented!(),
         };
@@ -413,8 +420,13 @@ mod tests {
 
     impl TestExpression for i64 {
         fn test_expression(&self, expression: &Expression) -> bool {
-            let Expression::Integer(int) = expression else {
-                eprintln!("expression is not Integer(_). Got {:?}", expression);
+            let Expression::Literal(literal) = expression else {
+                eprintln!("expression is not a Literal(_). Got {:?}", expression);
+                return false;
+            };
+
+            let Literal::Integer(int) = literal else {
+                eprintln!("literal is not an Integet(_). Got {:?}", literal);
                 return false;
             };
 
@@ -428,8 +440,13 @@ mod tests {
 
     impl TestExpression for bool {
         fn test_expression(&self, expression: &Expression) -> bool {
-            let Expression::Boolean(bool) = expression else {
-                eprintln!("expression is not Boolean(_). Got: {:?}", expression);
+            let Expression::Literal(literal) = expression else {
+                eprintln!("expression is not Literal(_). Got: {:?}", expression);
+                return false;
+            };
+
+            let Literal::Boolean(bool) = literal else {
+                eprintln!("literal is not a Boolean(_). Got: {:?}", literal);
                 return false;
             };
 
@@ -884,8 +901,12 @@ mod tests {
             panic!("Expected an Expression Statement. Got {:?}", program.statements[0]);
         };
 
-        let Expression::String(string) = expr else {
-            panic!("Expected a String Expression. Got {:?}", expr);
+        let Expression::Literal(literal) = expr else {
+            panic!("Expected a Literal Expression. Got {:?}", expr);
+        };
+
+        let Literal::String(string) = literal else {
+            panic!("Expected a String Literal. Got {:?}", literal);
         };
 
         assert_eq!(string.as_str(), "hello world");
@@ -945,7 +966,7 @@ mod tests {
             panic!("Expected an Expression Statement. Got {:?}", program.statements[0]);
         };
 
-        let Expression::Map(pairs) = expression else {
+        let Expression::Hash(pairs) = expression else {
             panic!("Expected an HashMap. Got {:?}", expression);
         };
 
@@ -964,7 +985,7 @@ mod tests {
             panic!("Expected an Expression Statement. Got {:?}", program.statements[0]);
         };
 
-        let Expression::Map(pairs) = expression else {
+        let Expression::Hash(pairs) = expression else {
             panic!("Expected an HashMap. Got {:?}", expression);
         };
 
@@ -972,10 +993,10 @@ mod tests {
 
         let expected = HashMap::from([("one", 1i64), ("two", 2), ("three", 3)]);
         for (key, value) in pairs {
-            let Expression::String(literal) = key  else {
-                panic!("Expected key to be a String Expression. Got {:?}", key);
+            let Literal::String(string) = key else {
+                panic!("Expected key to be a String Literal. Got {:?}", key);
             };
-            let expected_value = expected[literal.as_str()];
+            let expected_value = expected[string.as_str()];
             expected_value.test_expression(value);
         }
     }
@@ -992,7 +1013,7 @@ mod tests {
             panic!("Expected an Expression Statement. Got {:?}", program.statements[0]);
         };
 
-        let Expression::Map(pairs) = expression else {
+        let Expression::Hash(pairs) = expression else {
             panic!("Expected an HashMap. Got {:?}", expression);
         };
 
@@ -1004,7 +1025,7 @@ mod tests {
             ("three", (15, "/", 5)),
         ]);
         for (key, value) in pairs {
-            let Expression::String(literal) = key  else {
+            let Literal::String(literal) = key  else {
                 panic!("Expected key to be a String Expression. Got {:?}", key);
             };
 
