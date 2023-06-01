@@ -7,6 +7,7 @@ pub enum BuiltinFunction {
     Last,
     Rest,
     Push,
+    Puts,
 }
 
 impl BuiltinFunction {
@@ -17,6 +18,7 @@ impl BuiltinFunction {
             BuiltinFunction::Last => BuiltinFunction::last(args),
             BuiltinFunction::Rest => BuiltinFunction::rest(args),
             BuiltinFunction::Push => BuiltinFunction::push(args),
+            BuiltinFunction::Puts => BuiltinFunction::puts(args),
         }
     }
 
@@ -95,5 +97,11 @@ impl BuiltinFunction {
             }
             got => new_error(format!("argument to `first` must be ARRAY, got {got}",)),
         }
+    }
+
+    fn puts(args: &[Object]) -> Object {
+        args.iter().for_each(|arg| println!("{}", arg.inspect()));
+
+        Object::Null
     }
 }

@@ -318,6 +318,7 @@ fn get_builtin(identifier: &Identifier) -> Option<Object> {
         "last" => BuiltinFunction::Last,
         "rest" => BuiltinFunction::Rest,
         "push" => BuiltinFunction::Push,
+        "puts" => BuiltinFunction::Puts,
         _ => return None,
     };
 
