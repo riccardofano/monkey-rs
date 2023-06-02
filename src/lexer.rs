@@ -55,6 +55,17 @@ impl Lexer {
         number.parse().unwrap()
     }
 
+    fn read_string(&mut self) -> String {
+        let position = self.position + 1;
+        loop {
+            self.read_char();
+            if self.character == b'"' || self.character == 0 {
+                break;
+            }
+        }
+        self.input[position..self.position].to_string()
+    }
+
     pub fn next_token(&mut self) -> Token {
         self.skip_whitespace();
 
@@ -75,6 +86,7 @@ impl Lexer {
             b']' => Token::new(TokenKind::Rbracket),
             b'{' => Token::new(TokenKind::Lbrace),
             b'}' => Token::new(TokenKind::Rbrace),
+            b'"' => Token::new(TokenKind::String(self.read_string())),
             b'=' => {
                 if self.peek_char() == b'=' {
                     self.read_char();
@@ -90,17 +102,6 @@ impl Lexer {
                 } else {
                     Token::new(TokenKind::Bang)
                 }
-            }
-            b'"' => {
-                let position = self.position + 1;
-                loop {
-                    self.read_char();
-                    if self.character == b'"' || self.character == 0 {
-                        break;
-                    }
-                }
-                let string = self.input[position..self.position].to_string();
-                Token::new(TokenKind::String(string))
             }
             c if is_letter(c) => {
                 let literal = self.read_identifier();
