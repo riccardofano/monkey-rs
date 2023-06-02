@@ -1,4 +1,4 @@
-use crate::object::{new_error, Object};
+use super::object::{new_error, Object};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BuiltinFunction {

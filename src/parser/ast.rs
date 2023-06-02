@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::token::TokenKind;
+use crate::lexer::token::TokenKind;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Identifier(pub String);

@@ -1,7 +1,10 @@
-use crate::{
-    ast::{Expression, Identifier, Literal, Program, Statement},
-    lexer::Lexer,
+pub mod ast;
+
+use ast::{Expression, Identifier, Literal, Program, Statement};
+
+use crate::lexer::{
     token::{Token, TokenKind},
+    Lexer,
 };
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
@@ -387,7 +390,6 @@ mod tests {
     use std::collections::HashMap;
 
     use super::*;
-    use crate::ast::Statement;
 
     trait TestExpression {
         fn test_expression(&self, expression: &Expression) -> bool;

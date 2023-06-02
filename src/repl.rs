@@ -1,6 +1,6 @@
 use std::io::{self, BufRead, Write};
 
-use crate::{evaluator::Eval, lexer::Lexer, object::Environment, parser::Parser};
+use crate::{evaluator::object::Environment, evaluator::Eval, lexer::Lexer, parser::Parser};
 
 const PROMPT: &str = ">> ";
 

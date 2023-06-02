@@ -1,9 +1,7 @@
 use std::{cell::RefCell, collections::HashMap, fmt::Display, hash::Hash, rc::Rc};
 
-use crate::{
-    ast::{Expression, Identifier, Statement},
-    builtins::BuiltinFunction,
-};
+use super::builtins::BuiltinFunction;
+use crate::parser::ast::{Expression, Identifier, Statement};
 
 pub const TRUE: Object = Object::Boolean(true);
 pub const FALSE: Object = Object::Boolean(false);

@@ -1,5 +1,6 @@
-use crate::token::Token;
-use crate::token::TokenKind;
+pub mod token;
+
+use token::{Token, TokenKind};
 
 #[derive(Debug)]
 pub struct Lexer {
@@ -139,7 +140,7 @@ mod tests {
     use std::vec;
 
     use super::*;
-    use crate::token::TokenKind;
+    use token::TokenKind;
 
     fn test_next_token(input: &str, expected: &[TokenKind]) {
         let mut lexer = Lexer::new(input);

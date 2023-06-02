@@ -1,9 +1,13 @@
+pub mod builtins;
+pub mod object;
+
 use std::collections::HashMap;
 
-use crate::ast::{Expression, Identifier, Literal, Program, Statement};
-use crate::builtins::BuiltinFunction;
-use crate::object::{new_error, Env, Environment, Object, FALSE, TRUE};
-use crate::token::TokenKind;
+use builtins::BuiltinFunction;
+use object::{new_error, Env, Environment, Object, FALSE, TRUE};
+
+use crate::lexer::token::TokenKind;
+use crate::parser::ast::{Expression, Identifier, Literal, Program, Statement};
 
 pub trait Eval {
     fn eval(&self, env: Env) -> Object;
@@ -327,7 +331,7 @@ fn get_builtin(identifier: &Identifier) -> Option<Object> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{lexer::Lexer, object::Environment, parser::Parser};
+    use crate::{lexer::Lexer, parser::Parser};
 
     use super::*;
 
