@@ -27,7 +27,9 @@ pub fn start(mut input: impl BufRead) -> io::Result<()> {
         }
 
         let evaluated = program.eval(env.clone());
-        println!("{}", evaluated.inspect());
+        if let Some(value) = evaluated {
+            println!("{}", value.inspect());
+        }
 
         buf.clear();
     }
