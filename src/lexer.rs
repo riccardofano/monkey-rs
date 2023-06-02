@@ -59,6 +59,7 @@ impl Lexer {
         self.skip_whitespace();
 
         let token = match self.character {
+            0 => Token::new(TokenKind::Eof),
             b'+' => Token::new(TokenKind::Plus),
             b'-' => Token::new(TokenKind::Minus),
             b'*' => Token::new(TokenKind::Asterisk),
@@ -74,7 +75,6 @@ impl Lexer {
             b']' => Token::new(TokenKind::Rbracket),
             b'{' => Token::new(TokenKind::Lbrace),
             b'}' => Token::new(TokenKind::Rbrace),
-            0 => Token::new(TokenKind::Eof),
             b'=' => {
                 if self.peek_char() == b'=' {
                     self.read_char();
@@ -102,18 +102,16 @@ impl Lexer {
                 let string = self.input[position..self.position].to_string();
                 Token::new(TokenKind::String(string))
             }
-            c => {
-                if is_letter(c) {
-                    let literal = self.read_identifier();
-                    let kind = TokenKind::from_letters(literal);
-                    return Token::new(kind);
-                } else if is_number(c) {
-                    let number = self.read_number();
-                    return Token::new(TokenKind::Int(number));
-                } else {
-                    return Token::new(TokenKind::Illegal);
-                }
+            c if is_letter(c) => {
+                let literal = self.read_identifier();
+                let kind = TokenKind::from_letters(literal);
+                return Token::new(kind);
             }
+            c if is_number(c) => {
+                let number = self.read_number();
+                return Token::new(TokenKind::Int(number));
+            }
+            _ => return Token::new(TokenKind::Illegal),
         };
 
         self.read_char();
