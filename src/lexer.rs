@@ -70,38 +70,38 @@ impl Lexer {
     pub fn next_token(&mut self) -> Token {
         self.skip_whitespace();
 
-        let token = match self.character {
-            0 => Token::new(TokenKind::Eof),
-            b'+' => Token::new(TokenKind::Plus),
-            b'-' => Token::new(TokenKind::Minus),
-            b'*' => Token::new(TokenKind::Asterisk),
-            b'/' => Token::new(TokenKind::Slash),
-            b'<' => Token::new(TokenKind::LessThan),
-            b'>' => Token::new(TokenKind::GreaterThan),
-            b',' => Token::new(TokenKind::Comma),
-            b':' => Token::new(TokenKind::Colon),
-            b';' => Token::new(TokenKind::Semicolon),
-            b'(' => Token::new(TokenKind::Lparen),
-            b')' => Token::new(TokenKind::Rparen),
-            b'[' => Token::new(TokenKind::Lbracket),
-            b']' => Token::new(TokenKind::Rbracket),
-            b'{' => Token::new(TokenKind::Lbrace),
-            b'}' => Token::new(TokenKind::Rbrace),
-            b'"' => Token::new(TokenKind::String(self.read_string())),
+        let token_kind = match self.character {
+            0 => TokenKind::Eof,
+            b'+' => TokenKind::Plus,
+            b'-' => TokenKind::Minus,
+            b'*' => TokenKind::Asterisk,
+            b'/' => TokenKind::Slash,
+            b'<' => TokenKind::LessThan,
+            b'>' => TokenKind::GreaterThan,
+            b',' => TokenKind::Comma,
+            b':' => TokenKind::Colon,
+            b';' => TokenKind::Semicolon,
+            b'(' => TokenKind::Lparen,
+            b')' => TokenKind::Rparen,
+            b'[' => TokenKind::Lbracket,
+            b']' => TokenKind::Rbracket,
+            b'{' => TokenKind::Lbrace,
+            b'}' => TokenKind::Rbrace,
+            b'"' => TokenKind::String(self.read_string()),
             b'=' => {
                 if self.peek_char() == b'=' {
                     self.read_char();
-                    Token::new(TokenKind::Equal)
+                    TokenKind::Equal
                 } else {
-                    Token::new(TokenKind::Assign)
+                    TokenKind::Assign
                 }
             }
             b'!' => {
                 if self.peek_char() == b'=' {
                     self.read_char();
-                    Token::new(TokenKind::NotEqual)
+                    TokenKind::NotEqual
                 } else {
-                    Token::new(TokenKind::Bang)
+                    TokenKind::Bang
                 }
             }
             c if is_letter(c) => {
@@ -117,7 +117,7 @@ impl Lexer {
         };
 
         self.read_char();
-        token
+        Token::new(token_kind)
     }
 
     fn skip_whitespace(&mut self) {
