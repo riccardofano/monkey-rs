@@ -39,6 +39,14 @@ impl Lexer {
         return self.input.as_bytes()[self.read_position];
     }
 
+    fn if_peeked(&mut self, to_match: u8, matched: TokenKind, default: TokenKind) -> TokenKind {
+        if self.peek_char() == to_match {
+            self.read_char();
+            return matched;
+        }
+        default
+    }
+
     fn read_identifier(&mut self) -> &str {
         let start = self.position;
         while is_letter(self.character) {
@@ -88,22 +96,8 @@ impl Lexer {
             b'{' => TokenKind::Lbrace,
             b'}' => TokenKind::Rbrace,
             b'"' => TokenKind::String(self.read_string()),
-            b'=' => {
-                if self.peek_char() == b'=' {
-                    self.read_char();
-                    TokenKind::Equal
-                } else {
-                    TokenKind::Assign
-                }
-            }
-            b'!' => {
-                if self.peek_char() == b'=' {
-                    self.read_char();
-                    TokenKind::NotEqual
-                } else {
-                    TokenKind::Bang
-                }
-            }
+            b'=' => self.if_peeked(b'=', TokenKind::Equal, TokenKind::Assign),
+            b'!' => self.if_peeked(b'=', TokenKind::NotEqual, TokenKind::Bang),
             c if is_letter(c) => {
                 let literal = self.read_identifier();
                 let kind = TokenKind::from_letters(literal);
