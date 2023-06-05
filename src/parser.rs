@@ -277,54 +277,12 @@ impl Parser {
                 self.expect_peek(&TokenKind::Rparen)?;
                 return expression;
             }
-            TokenKind::If => {
-                self.expect_peek(&TokenKind::Lparen)?;
-                self.next_token();
-                let condition = self.parse_expression(Precedence::Lowest)?;
-
-                self.expect_peek(&TokenKind::Rparen)?;
-                self.expect_peek(&TokenKind::Lbrace)?;
-
-                let consequence = self.parse_block_statement()?;
-
-                let mut alternative = None;
-                if self.peek_token_is(&TokenKind::Else) {
-                    self.next_token();
-                    self.expect_peek(&TokenKind::Lbrace)?;
-
-                    alternative = Some(Box::new(self.parse_block_statement()?));
-                }
-                Expression::If(Box::new(condition), Box::new(consequence), alternative)
-            }
-            TokenKind::Function => {
-                self.expect_peek(&TokenKind::Lparen)?;
-                let params = self.parse_function_params()?;
-                self.expect_peek(&TokenKind::Lbrace)?;
-                let body = self.parse_block_statement()?;
-
-                Expression::Function(params, Box::new(body))
-            }
+            TokenKind::If => self.parse_if_expression()?,
+            TokenKind::Function => self.parse_function_expression()?,
             TokenKind::Lbracket => {
                 Expression::Array(self.parse_expression_list(&TokenKind::Rbracket)?)
             }
-            TokenKind::Lbrace => {
-                let mut pairs: Vec<(Expression, Expression)> = Vec::new();
-                while !self.peek_token_is(&TokenKind::Rbrace) {
-                    self.next_token();
-                    let key = self.parse_expression(Precedence::Lowest)?;
-
-                    self.expect_peek(&TokenKind::Colon)?;
-                    self.next_token();
-                    let value = self.parse_expression(Precedence::Lowest)?;
-
-                    pairs.push((key, value));
-                    if !self.peek_token_is(&TokenKind::Rbrace) {
-                        self.expect_peek(&TokenKind::Comma)?;
-                    }
-                }
-                self.expect_peek(&TokenKind::Rbrace)?;
-                Expression::Hash(pairs)
-            }
+            TokenKind::Lbrace => self.parse_hash_expression()?,
             _ => unimplemented!(),
         };
 
@@ -352,6 +310,59 @@ impl Parser {
                 Ok(Expression::Infix(Box::new(left), token, Box::new(right)))
             }
         }
+    }
+
+    fn parse_if_expression(&mut self) -> Result<Expression, String> {
+        self.expect_peek(&TokenKind::Lparen)?;
+        self.next_token();
+        let condition = self.parse_expression(Precedence::Lowest)?;
+
+        self.expect_peek(&TokenKind::Rparen)?;
+        self.expect_peek(&TokenKind::Lbrace)?;
+
+        let consequence = self.parse_block_statement()?;
+
+        let mut alternative = None;
+        if self.peek_token_is(&TokenKind::Else) {
+            self.next_token();
+            self.expect_peek(&TokenKind::Lbrace)?;
+
+            alternative = Some(Box::new(self.parse_block_statement()?));
+        }
+
+        Ok(Expression::If(
+            Box::new(condition),
+            Box::new(consequence),
+            alternative,
+        ))
+    }
+
+    fn parse_function_expression(&mut self) -> Result<Expression, String> {
+        self.expect_peek(&TokenKind::Lparen)?;
+        let params = self.parse_function_params()?;
+        self.expect_peek(&TokenKind::Lbrace)?;
+        let body = self.parse_block_statement()?;
+
+        Ok(Expression::Function(params, Box::new(body)))
+    }
+
+    fn parse_hash_expression(&mut self) -> Result<Expression, String> {
+        let mut pairs: Vec<(Expression, Expression)> = Vec::new();
+        while !self.peek_token_is(&TokenKind::Rbrace) {
+            self.next_token();
+            let key = self.parse_expression(Precedence::Lowest)?;
+
+            self.expect_peek(&TokenKind::Colon)?;
+            self.next_token();
+            let value = self.parse_expression(Precedence::Lowest)?;
+
+            pairs.push((key, value));
+            if !self.peek_token_is(&TokenKind::Rbrace) {
+                self.expect_peek(&TokenKind::Comma)?;
+            }
+        }
+        self.expect_peek(&TokenKind::Rbrace)?;
+        Ok(Expression::Hash(pairs))
     }
 
     fn parse_expression_list(&mut self, end: &TokenKind) -> Result<Vec<Expression>, String> {
