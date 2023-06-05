@@ -76,28 +76,30 @@ impl Lexer {
     }
 
     pub fn next_token(&mut self) -> Token {
+        use TokenKind::*;
+
         self.skip_whitespace();
 
         let token_kind = match self.character {
-            0 => TokenKind::Eof,
-            b'+' => TokenKind::Plus,
-            b'-' => TokenKind::Minus,
-            b'*' => TokenKind::Asterisk,
-            b'/' => TokenKind::Slash,
-            b'<' => TokenKind::LessThan,
-            b'>' => TokenKind::GreaterThan,
-            b',' => TokenKind::Comma,
-            b':' => TokenKind::Colon,
-            b';' => TokenKind::Semicolon,
-            b'(' => TokenKind::Lparen,
-            b')' => TokenKind::Rparen,
-            b'[' => TokenKind::Lbracket,
-            b']' => TokenKind::Rbracket,
-            b'{' => TokenKind::Lbrace,
-            b'}' => TokenKind::Rbrace,
-            b'"' => TokenKind::String(self.read_string()),
-            b'=' => self.if_peeked(b'=', TokenKind::Equal, TokenKind::Assign),
-            b'!' => self.if_peeked(b'=', TokenKind::NotEqual, TokenKind::Bang),
+            0 => Eof,
+            b'+' => Plus,
+            b'-' => Minus,
+            b'*' => Asterisk,
+            b'/' => Slash,
+            b'<' => LessThan,
+            b'>' => GreaterThan,
+            b',' => Comma,
+            b':' => Colon,
+            b';' => Semicolon,
+            b'(' => Lparen,
+            b')' => Rparen,
+            b'[' => Lbracket,
+            b']' => Rbracket,
+            b'{' => Lbrace,
+            b'}' => Rbrace,
+            b'"' => String(self.read_string()),
+            b'=' => self.if_peeked(b'=', Equal, Assign),
+            b'!' => self.if_peeked(b'=', NotEqual, Bang),
             c if is_letter(c) => {
                 let literal = self.read_identifier();
                 let kind = TokenKind::from_letters(literal);
@@ -105,9 +107,9 @@ impl Lexer {
             }
             c if is_number(c) => {
                 let number = self.read_number();
-                return Token::new(TokenKind::Int(number));
+                return Token::new(Int(number));
             }
-            _ => return Token::new(TokenKind::Illegal),
+            _ => return Token::new(Illegal),
         };
 
         self.read_char();
