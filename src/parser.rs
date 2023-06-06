@@ -257,19 +257,10 @@ impl Parser {
             TokenKind::String(string) => Expression::Literal(Literal::String(string.clone())),
             TokenKind::True => Expression::Literal(Literal::Boolean(true)),
             TokenKind::False => Expression::Literal(Literal::Boolean(false)),
-            TokenKind::Minus => {
+            TokenKind::Minus | TokenKind::Bang => {
+                let token = self.current_token.kind.clone();
                 self.next_token();
-                Expression::Prefix(
-                    TokenKind::Minus,
-                    Box::new(self.parse_expression(Precedence::Prefix)?),
-                )
-            }
-            TokenKind::Bang => {
-                self.next_token();
-                Expression::Prefix(
-                    TokenKind::Bang,
-                    Box::new(self.parse_expression(Precedence::Prefix)?),
-                )
+                Expression::Prefix(token, Box::new(self.parse_expression(Precedence::Prefix)?))
             }
             TokenKind::Lparen => {
                 self.next_token();
