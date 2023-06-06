@@ -290,26 +290,28 @@ impl Parser {
     }
 
     fn parse_infix(&mut self, left: Expression) -> Result<Expression, String> {
-        let token = self.current_token.kind.clone();
-        match token {
+        let expression = match self.current_token.kind {
             TokenKind::Lparen => {
                 let right = self.parse_expression_list(&TokenKind::Rparen)?;
-                Ok(Expression::Call(Box::new(left), right))
+                Expression::Call(Box::new(left), right)
             }
             TokenKind::Lbracket => {
                 self.next_token();
                 let index = self.parse_expression(Precedence::Lowest)?;
                 self.expect_peek(&TokenKind::Rbracket)?;
-                Ok(Expression::Index(Box::new(left), Box::new(index)))
+                Expression::Index(Box::new(left), Box::new(index))
             }
             _ => {
+                let token = self.current_token.kind.clone();
                 let precedence = self.current_precedence();
                 self.next_token();
 
                 let right = self.parse_expression(precedence)?;
-                Ok(Expression::Infix(Box::new(left), token, Box::new(right)))
+                Expression::Infix(Box::new(left), token, Box::new(right))
             }
-        }
+        };
+
+        Ok(expression)
     }
 
     fn parse_if_expression(&mut self) -> Result<Expression, String> {
