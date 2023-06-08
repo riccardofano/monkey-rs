@@ -1,4 +1,10 @@
-use std::{cell::RefCell, collections::HashMap, fmt::Display, hash::Hash, rc::Rc};
+use std::{
+    cell::RefCell,
+    collections::{hash_map::DefaultHasher, HashMap},
+    fmt::{Debug, Display},
+    hash::{Hash, Hasher},
+    rc::Rc,
+};
 
 use super::builtins::BuiltinFunction;
 use crate::parser::ast::{Expression, Identifier, Statement};
@@ -6,7 +12,7 @@ use crate::parser::ast::{Expression, Identifier, Statement};
 pub const TRUE: Object = Object::Boolean(true);
 pub const FALSE: Object = Object::Boolean(false);
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone)]
 pub enum Object {
     Null,
     Error(String),
@@ -91,6 +97,31 @@ impl Display for Object {
     }
 }
 
+impl Debug for Object {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Null => write!(f, "Null"),
+            Self::Error(arg0) => f.debug_tuple("Error").field(arg0).finish(),
+            Self::Boolean(arg0) => f.debug_tuple("Boolean").field(arg0).finish(),
+            Self::Integer(arg0) => f.debug_tuple("Integer").field(arg0).finish(),
+            Self::String(arg0) => f.debug_tuple("String").field(arg0).finish(),
+            Self::Array(arg0) => f.debug_tuple("Array").field(arg0).finish(),
+            Self::Hash(arg0) => f.debug_tuple("Hash").field(arg0).finish(),
+            Self::ReturnValue(arg0) => f.debug_tuple("ReturnValue").field(arg0).finish(),
+            Self::Builtin(arg0) => f
+                .debug_tuple("Builtin")
+                .field(&(arg0 as *const BuiltinFunction))
+                .finish(),
+            Self::Function(arg0, arg1, arg2) => f
+                .debug_tuple("Function")
+                .field(arg0)
+                .field(arg1)
+                .field(arg2)
+                .finish(),
+        }
+    }
+}
+
 impl From<bool> for Object {
     fn from(value: bool) -> Self {
         if value {
@@ -107,10 +138,29 @@ impl Hash for Object {
             Object::Boolean(bool) => bool.hash(state),
             Object::Integer(int) => int.hash(state),
             Object::String(string) => string.hash(state),
-            _ => "".hash(state),
+            Object::Null => 0.hash(state),
+            Object::Error(error) => error.hash(state),
+            Object::Array(elements) => elements.hash(state),
+            Object::ReturnValue(value) => value.hash(state),
+            Object::Hash(_) | Object::Builtin(_) | Object::Function(_, _, _) => "".hash(state),
         }
     }
 }
+
+impl PartialEq for Object {
+    fn eq(&self, other: &Self) -> bool {
+        let mut hasher = DefaultHasher::new();
+        self.hash(&mut hasher);
+        let hash_self = hasher.finish();
+
+        let mut hasher = DefaultHasher::new();
+        other.hash(&mut hasher);
+        let hash_other = hasher.finish();
+
+        hash_self == hash_other
+    }
+}
+impl Eq for Object {}
 
 pub fn new_error(reason: String) -> Object {
     Object::Error(reason)
@@ -118,7 +168,7 @@ pub fn new_error(reason: String) -> Object {
 
 pub type Env = Rc<RefCell<Environment>>;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug)]
 pub struct Environment {
     store: HashMap<Identifier, Object>,
     outer: Option<Env>,
@@ -164,6 +214,7 @@ mod tests {
 
     fn calculate_hash<T: Hash>(t: &T) -> u64 {
         let mut s = DefaultHasher::new();
+
         t.hash(&mut s);
         s.finish()
     }

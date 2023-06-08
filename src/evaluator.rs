@@ -3,11 +3,12 @@ pub mod object;
 
 use std::collections::HashMap;
 
-use builtins::BuiltinFunction;
 use object::{new_error, Env, Environment, Object, FALSE, TRUE};
 
 use crate::lexer::token::TokenKind;
 use crate::parser::ast::{Expression, Identifier, Literal, Program, Statement};
+
+use self::builtins::{first, last, len, push, puts, rest};
 
 pub trait Eval {
     fn eval(&self, env: Env) -> Option<Object>;
@@ -295,7 +296,7 @@ fn apply_function(func: Object, args: &[Object]) -> Option<Object> {
                 evaluated
             }
         }
-        Object::Builtin(func) => func.call(args),
+        Object::Builtin(func) => func(args),
         _ => new_error(format!("not a function: {func}")),
     })
 }
@@ -323,12 +324,12 @@ fn eval_identifier(identifier: &Identifier, env: Env) -> Object {
 
 fn get_builtin(identifier: &Identifier) -> Option<Object> {
     let function = match identifier.0.as_str() {
-        "len" => BuiltinFunction::Len,
-        "first" => BuiltinFunction::First,
-        "last" => BuiltinFunction::Last,
-        "rest" => BuiltinFunction::Rest,
-        "push" => BuiltinFunction::Push,
-        "puts" => BuiltinFunction::Puts,
+        "len" => len,
+        "first" => first,
+        "last" => last,
+        "rest" => rest,
+        "push" => push,
+        "puts" => puts,
         _ => return None,
     };
 
